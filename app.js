@@ -83,7 +83,6 @@ https.get(Domainurl, function (res) {
   let bufstr = Buffer.from(domainName,'utf8');
   let domainHex = bufstr.toString('hex');
   let url = `https://dnstwister.report/api/whois/${domainHex}`;
-  function DownloadingFile(params) {
     https.get(url, function(res){
       const  streamfile =  fs.createWriteStream(path.join(__dirname, `/dist/domainwhois.json`));
         res.pipe(streamfile);
@@ -92,9 +91,6 @@ https.get(Domainurl, function (res) {
            console.log("Done Downloading json file");
          });
       });
-       
-    }
-    DownloadingFile(url);
     var data =  require(path.join(__dirname, `/dist/domainwhois.json`));
     console.log(typeof(data));
     return data.whois_text;
