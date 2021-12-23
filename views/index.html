@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<head>
+    <title>Similarity Module</title>
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">Similarity Module</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+              <ul class="navbar-nav">
+                <li class="nav-item active">
+                  <a class="nav-link" href="#">Home </a>
+                </li>
+            
+              </ul>
+            </div>
+          </nav>
+    </div>
+    <div class="container-fluid">
+        <form action="/domainsearch" method="post">
+            <div class="form-group">
+              <label for="domainename">Domain name</label>
+              <input type="text" class="form-control" name="doms" id="domainename" placeholder="Domain name">
+            </div>
+            <hr/>
+            <button type="submit" class="btn btn-primary">Search Daily Dns</button>
+          </form>
+          <hr/>
+    </div>
+    <div class="container-fluid">
+      <form action="/dnstwistsearch" method="post">
+          <div class="form-group">
+            <label for="domainename">Domain name</label>
+            <input type="text" class="form-control" name="doms" id="domainename" placeholder="Domain name">
+          </div>
+          <hr/>
+          <button type="submit" class="btn btn-primary">Search Dnstwist</button>
+        </form>
+        <hr/>
+  </div>
+</body>
+</html>

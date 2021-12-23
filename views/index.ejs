@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+    <title>Home from EJS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+</head>
+<body>
+    <div class="container">
+    <table class="table table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Nothing here</th>
+            <th scope="col">Domain</th>
+            <th scope="col">Similarity Degree</th>
+          </tr>
+        </thead>
+        <tbody>
+           <% let i = 0 %>
+            <% for (let k in resReqDomainName) {%>
+                <tr>
+                    <th scope="row"><%= i  %> </th>
+
+                    <td> <a href="/views/domainwhois.ejs?id=<%= k %>"><%= k %> </a> </td>
+                    <td><%= resReqDomainName[k] %></td>
+                </tr> 
+                <%  i++ %>
+                <% } %>
+         
+        </tbody>
+      </table>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+</body>
+</html>
