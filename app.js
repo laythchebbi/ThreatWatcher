@@ -16,7 +16,9 @@ const { json } = require("body-parser");
 
 const fetch = require('node-fetch');
 const url = require('url');
-
+const async = require("async");
+const getreq = require("async-get-file");
+const { resolve } = require("path");
 
 app.set('views',path.join(__dirname, 'views'));
 app.set('view engine','ejs');
@@ -47,59 +49,6 @@ https.get(Domainurl, function (res) {
     //});
   });
 });
-
-
-// It works but needs to refresh the page few times until the file is downloaded
- function DnsTwistApi(domainName) {
-  let bufstr = Buffer.from(domainName,'utf8');
-  let domainHex = bufstr.toString('hex');
-  console.log(domainHex);
-  var DnsTwistUrl = `https://dnstwister.report/search/${domainHex}/json`;
-  let DnsTwistUrlFuzzer = `https://dnstwister.report/api/fuzz/${domainHex}`;
-  let whoisurl = `https://dnstwister.report/api/whois/${domainHex}`;
-  https.get(DnsTwistUrlFuzzer, function(res){
-  const  fileStreamDns =  fs.createWriteStream(path.join(__dirname, "/dist/DnsTiwsitRes.json"));
-    res.pipe(fileStreamDns);
-    fileStreamDns.on("finish", function () {
-       fileStreamDns.close();
-       console.log("Done Downloading json file");
-     });
-  });
-   
-  var data =  require(path.join(__dirname, "/dist/DnsTiwsitRes.json"));
-  console.log(typeof(data));
-  var dataLight = data.fuzzy_domains;
-  var dataTable = [];
-  for(var i =0; i< dataLight.length;i++){
-      dataTable[i] = dataLight[i].domain;
-  }
- 
-  return  dataTable;
-
-}
-
-// Whois Lookup for a domain
- function WhoisLookupDns(domainName) {
-  let bufstr = Buffer.from(domainName,'utf8');
-  let domainHex = bufstr.toString('hex');
-  let url = `https://dnstwister.report/api/whois/${domainHex}`;
-    https.get(url, function(res){
-      const  streamfile =  fs.createWriteStream(path.join(__dirname, `/dist/domainwhois.json`));
-        res.pipe(streamfile);
-        streamfile.on("finish", function () {
-           streamfile.close();
-           console.log("Done Downloading json file");
-         });
-      });
-    var data =  require(path.join(__dirname, `/dist/domainwhois.json`));
-    console.log(typeof(data));
-    return data.whois_text;
-}
-
-//let dataWhoisLookup = WhoisLookupDns("google.com");
-
-//console.log(dataWhoisLookup);
-
 // Code To read from Domain names file line by line
 const file = readline.createInterface({
   input: fs.createReadStream(__dirname + "/dist/domain-names.txt"),
@@ -115,10 +64,37 @@ file.on("line", (line) => {
   filedata = fileDataArray;
   i++;
 });
-/*let datarr = [""];
-fileDataArray.forEach(line){
-    dataarr
-}*/
+// Async Function fetchDomainApi domainwhois
+async function fetchAPI(domainName) {
+  let bufstr =  await Buffer.from(domainName,'utf8');
+  let domainHex = await bufstr.toString('hex');
+  let url = await `https://dnstwister.report/api/whois/${domainHex}`;
+  const response = await fetch(url);
+  const body = await response.json();
+  const whoisText = await body.whois_text;
+   //console.log(whoisText);
+
+  return whoisText;
+
+}
+// Async Function fetchDomainApi Domain Fuzzing
+async function fetchAPIDnsTwist(domainName) {
+  let bufstr =  await Buffer.from(domainName,'utf8');
+  let domainHex = await bufstr.toString('hex');
+  let DnsTwistUrlFuzzer = `https://dnstwister.report/api/fuzz/${domainHex}`;
+  const response = await fetch(DnsTwistUrlFuzzer);
+  const body = await response.json();
+  const domains = await body.fuzzy_domains;
+   //console.log(whoisText);
+  var dataTable = [];
+  for(var i =0; i< domains.length;i++){
+       dataTable[i] = domains[i].domain;
+   }
+  return dataTable;
+
+}
+
+
 
 function checkIfExists(domaine) {
   
@@ -126,16 +102,6 @@ function checkIfExists(domaine) {
   var i = 0;
   var fileDataArrayLength = fileDataArray.length;
   console.log(fileDataArrayLength);
-  /*   do {
-        //console.log("checking " + fileDataArray[i]);
-        console.log(i);
-        if(fileDataArray[i] == domaine){
-            check = true;
-            console.log(i + check );
-        }
-        i++;
-    } while (i < fileDataArrayLength || check == true);*/
-  //console.log(typeof(fileDataArray[2] == "0001011.com" ));
   while (i < fileDataArrayLength || check == true) {
     if (fileDataArray[i] == domaine) {
       check = true;
@@ -156,12 +122,12 @@ function similarityCheck(domain) {
     var similarity = stringSimilarity.compareTwoStrings(
       fileDataArray[i],
       domain
-    );
+    ); 
     //console.log(fileDataArray[i]);
     var nameDomane = fileDataArray[i].toString();
     //console.log(typeof(nameDomane));
     // Similarity value to be added by the user
-    if(similarity > 0.7){
+    if(similarity > 0.6){
       dict[nameDomane.toString()] = similarity;
     }
     
@@ -191,10 +157,6 @@ function DnsTwistSimilarity(domainsList, DomainNameSim) {
   return dict;
 }
 
-//console.log(chars);
-//var similarity = stringSimilarity.compareTwoStrings(chars, "sealed");
-//console.log(similarity);
-//similarityCheck("google.com");
 app.use(
   "/css",
   express.static(path.join(__dirname, "node_modules/bootstrap/dist/css"))
@@ -211,64 +173,60 @@ app.use(
 
 // Render main page
 app.get("/", (req, res) => {
-  //res.send(distance) ;
-  //res.send("Hello " + checkIfExists("zzy913.com") );
-  //res.send(similarityCheck("google.com"));
-  //res.sendFile(__dirname + "/views/index.html");
   res.sendFile(path.join(__dirname,"/views/index.html"));
- //res.send(dataWhoisLookup);
-  //console.log(typeof(resp));
-  /*
-var DomaineNameTest = 'google.com';
-let resp = DnsTwistApi(DomaineNameTest);
-console.log(resp);
-let SimilarDomsTwist = DnsTwistSimilarity(resp,DomaineNameTest);
-console.log(SimilarDomsTwist);*/
 });
 // create application/json parser
 var jsonParser = bodyParser.json();
 
 // create application/x-www-form-urlencoded parser
 var urlencodedParser = bodyParser.urlencoded({ extended: false });
+// Render Daily Domains
 app.post("/domainsearch", urlencodedParser, (req, res) => {
-  //console.log(req.body.doms.toString());
-  var reqDomainName = req.body.doms.toString();
-  //console.log(reqDomainName);
+  var reqDomainName = req.body.doms.toString(); 
   var resReqDomainName = {} ;
   resReqDomainName = similarityCheck(reqDomainName);
 /*  for(const [key, value] of Object.entries(resReqDomainName)){
     console.log(resReqDomainName[key]);
     console.log(resReqDomainName[value]);
 }*/
+var numberDailyDomains = fileDataArray.length;
 let trimedList = [];
 for (let k in resReqDomainName) {
     trimedList.push(k + ' : ' + resReqDomainName[k])
 }
 
-res.render('index',{resReqDomainName: resReqDomainName});
+res.render('index',{resReqDomainName: resReqDomainName, numberDailyDomains: numberDailyDomains});
  // res.sendFile(__dirname + "/views/index.html" , resReqDomainName);
 });
-// DnsTwistPage
-app.post("/dnstwistsearch",urlencodedParser,(req,res) =>{
+// Fulfills the promise and send the data to html response domain whois
+app.post('/dnstwistsearch', urlencodedParser, (req,res) => {
   var reqDomainName = req.body.doms.toString();
   console.log(reqDomainName);
-  var resReqDomainName = {};
-  let resp = DnsTwistApi(reqDomainName);
-  //console.log(resp);
-  resReqDomainName = DnsTwistSimilarity(resp,reqDomainName);
-  let trimedList = [];
-  for (let k in resReqDomainName) {
-    trimedList.push(k + ' : ' + resReqDomainName[k]);
+  let urlfetch = fetchAPIDnsTwist(reqDomainName);
+  urlfetch.then(RertiveData);
+  function RertiveData(data){
+      var resReqDomainName = {};
+      resReqDomainName = DnsTwistSimilarity(data,reqDomainName);
+      console.log(data);
+      let trimedList = [];
+      for (let k in resReqDomainName) {
+        trimedList.push(k + ' : ' + resReqDomainName[k]);
+      }
+      res.render('dns.ejs',{resReqDomainName: resReqDomainName});
   }
-  res.render('dns.ejs',{resReqDomainName: resReqDomainName});
+  console.log(urlfetch);
+  
 });
-// Render DomainWhois page
-app.get("/views/domainwhois.ejs",urlencodedParser , (req,res) =>{
+// Fulfills the promise and send the data to html response domain Fuzzing
+app.get('/views/domainwhois.ejs', urlencodedParser ,(req,res) => {
   var reqDomainNamebtn = req.query.id.toString();
-  //var dom = reqDomainNamebtn.
-  console.log(reqDomainNamebtn);
-  var dataWhoisLookup =  WhoisLookupDns(reqDomainNamebtn);
-  res.render('domainwhois.ejs',{dataWhoisLookup: dataWhoisLookup});
+  let urlfetch = fetchAPI(reqDomainNamebtn);
+  urlfetch.then(RertiveData);
+  function RertiveData(data){
+      console.log(data);
+      res.render('domainwhois.ejs',{dataWhoisLookup: data});
+  }
+  console.log(urlfetch);
+  
 });
-
 app.listen(3000);
