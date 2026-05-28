@@ -1,0 +1,38 @@
+[Unit]
+Description=Threat Watcher frontend (Express + EJS UI)
+After=network-online.target threat-watcher-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=threatwatcher
+Group=threatwatcher
+WorkingDirectory=/opt/threat-watcher/frontend
+EnvironmentFile=/opt/threat-watcher/frontend/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+LimitNOFILE=65536
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+ReadWritePaths=/var/log/threat-watcher
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tw-frontend
+
+[Install]
+WantedBy=multi-user.target

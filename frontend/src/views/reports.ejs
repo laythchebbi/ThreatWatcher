@@ -1,0 +1,84 @@
+<style>
+.reports-toolbar { display:flex; gap:10px; margin-bottom:14px; }
+.reports-toolbar input { flex:1; }
+.reports-table { width:100%; border-collapse:collapse; font-size:13px; }
+.reports-table th, .reports-table td { padding:10px 16px; text-align:left; }
+.reports-table thead { border-bottom:1px solid var(--tw-line); }
+.reports-table thead th { color:var(--tw-fg-2); font-family:var(--tw-font-mono); font-size:10px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; }
+.reports-table tbody tr { border-bottom:1px solid var(--tw-line); cursor:pointer; }
+.reports-table tbody tr:last-child { border-bottom:0; }
+.reports-table tbody tr:hover { background:var(--tw-bg-2); }
+.score-pill { display:inline-block; padding:2px 8px; border-radius:99px; font-family:var(--tw-font-mono); font-size:10px; }
+.score-pill.safe { background:var(--tw-safe-soft); color:var(--tw-safe); }
+.score-pill.warn { background:var(--tw-warn-soft); color:var(--tw-warn); }
+.score-pill.crit { background:var(--tw-critical-soft); color:var(--tw-critical); }
+.reports-empty { text-align:center; color:var(--tw-fg-3); padding:24px; }
+</style>
+
+<div class="tw-page-head" style="margin-bottom:18px">
+  <div class="tw-eyebrow">Workspace · Reports</div>
+  <h1>Scan history</h1>
+</div>
+
+<div class="reports-toolbar">
+  <input class="tw-input tw-mono" id="filter" placeholder="Filter by domain…" autocomplete="off" />
+  <a class="tw-btn tw-btn-primary" href="/new-scan">+ New scan</a>
+</div>
+
+<div class="tw-panel">
+  <table class="reports-table">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>SecureScore</th>
+        <th>Lookalikes</th>
+        <th>Dark web</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody id="reportsBody">
+      <% const rows = reports || []; %>
+      <% if (loadError) { %>
+        <tr><td colspan="5" class="reports-empty">Could not load reports — backend unreachable.</td></tr>
+      <% } else if (rows.length === 0) { %>
+        <tr><td colspan="5" class="reports-empty">No reports yet. <a href="/new-scan">Run a scan →</a></td></tr>
+      <% } else { %>
+        <% rows.forEach(function (r) {
+             const s = typeof r.secureScore === "number" ? r.secureScore : null;
+             const cls = s == null ? "" : s >= 0.7 ? "safe" : s >= 0.4 ? "warn" : "crit";
+             const created = r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 19) + "Z" : "—";
+             const look = (r.findings && r.findings.lookalikes) || 0;
+             const dw = (r.findings && r.findings.darkWebHits) || 0;
+        %>
+          <tr data-domain="<%= (r.domain || '').toLowerCase() %>" onclick="location.href='/scan/<%= r._id %>'">
+            <td class="tw-mono"><%= r.domain %></td>
+            <td><span class="score-pill <%= cls %>"><%= s == null ? "—" : s.toFixed(2) %></span></td>
+            <td class="tw-num"><%= look %></td>
+            <td class="tw-num"><%= dw %></td>
+            <td class="tw-mono" style="color:var(--tw-fg-2)"><%= created %></td>
+          </tr>
+        <% }); %>
+        <tr id="noMatchRow" style="display:none"><td colspan="5" class="reports-empty">No matches.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // Pure show/hide filter over server-rendered rows — no fetch, no re-render.
+  (function () {
+    var input = document.getElementById("filter");
+    if (!input) return;
+    var noMatch = document.getElementById("noMatchRow");
+    input.addEventListener("input", function (e) {
+      var q = e.target.value.toLowerCase().trim();
+      var visible = 0;
+      document.querySelectorAll("#reportsBody tr[data-domain]").forEach(function (tr) {
+        var show = !q || tr.dataset.domain.indexOf(q) !== -1;
+        tr.style.display = show ? "" : "none";
+        if (show) visible++;
+      });
+      if (noMatch) noMatch.style.display = visible === 0 ? "" : "none";
+    });
+  })();
+</script>

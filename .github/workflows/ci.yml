@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: node (lint + typecheck + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      # Single root lockfile covers both workspaces (backend, frontend).
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --audit-level=high
+
+  python:
+    name: python (backend/ml + scripts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+      - name: install ruff + black + pip-audit
+        run: pip install ruff==0.6.9 black==24.10.0 pip-audit==2.7.3
+      - name: lint
+        run: |
+          ruff check backend/ml backend/scripts
+          black --check backend/ml backend/scripts
+      # The legacy scikit-learn==0.22.1 pin has no wheels on modern Python
+      # (tracked for the M4 ML refresh). Keep dependency audit advisory so it
+      # never blocks CI; the ruff/black lint above is the enforced gate.
+      - name: pip-audit (advisory)
+        continue-on-error: true
+        run: pip-audit --requirement backend/ml/requirements.txt || true
+
+  secrets:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,761 @@
+<style>
+  /* ── Map area ─────────────────────────────────────────── */
+  .geo-map-card {
+    position: relative;
+    background: var(--tw-bg-1);
+    border: 1px solid var(--tw-line);
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: 1000 / 520;
+  }
+  .geo-map-card svg.world {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .geo-map-card .world .dot {
+    fill: var(--tw-fg-3);
+    opacity: 0.32;
+  }
+  [data-theme="light"] .geo-map-card .world .dot { opacity: 0.45; }
+  .geo-map-card .world .grat {
+    stroke: var(--tw-line);
+    stroke-width: 0.5;
+    fill: none;
+    opacity: 0.5;
+  }
+
+  /* event pulse */
+  .geo-pulse {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .geo-pulse::before, .geo-pulse::after {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 50%;
+  }
+  .geo-pulse::before {
+    background: currentColor;
+    box-shadow: 0 0 12px currentColor;
+  }
+  .geo-pulse::after {
+    background: currentColor;
+    opacity: 0.4;
+    animation: geo-ping 2.4s ease-out infinite;
+  }
+  @keyframes geo-ping {
+    0%   { transform: scale(1);   opacity: 0.5; }
+    80%  { transform: scale(3.6); opacity: 0;   }
+    100% { transform: scale(3.6); opacity: 0;   }
+  }
+  .geo-pulse.crit  { color: var(--tw-critical); }
+  .geo-pulse.warn  { color: var(--tw-warn); }
+  .geo-pulse.info  { color: var(--tw-info); }
+  .geo-pulse.safe  { color: var(--tw-safe); }
+  .geo-pulse.lookalike { color: oklch(0.78 0.14 75); }
+
+  /* arc */
+  .geo-arc {
+    fill: none;
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    stroke-dasharray: 4 6;
+    opacity: 0.6;
+    animation: geo-arc-flow 8s linear infinite;
+  }
+  @keyframes geo-arc-flow {
+    to { stroke-dashoffset: -200; }
+  }
+  .geo-arc.crit { stroke: var(--tw-critical); }
+  .geo-arc.warn { stroke: var(--tw-warn); }
+  .geo-arc.info { stroke: var(--tw-info); }
+
+  .geo-target {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .geo-target::before {
+    content: "";
+    position: absolute; inset: -10px;
+    border: 1.5px solid var(--tw-accent);
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+  .geo-target::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 6px; height: 6px;
+    background: var(--tw-accent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 14px var(--tw-accent);
+  }
+  .geo-target-label {
+    position: absolute;
+    left: 14px; top: -8px;
+    font-family: var(--tw-font-mono);
+    font-size: 10px;
+    color: var(--tw-fg-1);
+    background: var(--tw-bg-1);
+    border: 1px solid var(--tw-line);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* legend / overlay tools */
+  .geo-overlay {
+    position: absolute;
+    background: color-mix(in srgb, var(--tw-bg-1) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--tw-line);
+    border-radius: 4px;
+    font-family: var(--tw-font-mono);
+    font-size: 10px;
+    color: var(--tw-fg-1);
+  }
+  .geo-legend {
+    bottom: 14px; left: 14px;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .geo-legend .row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .geo-legend .dot-key {
+    width: 8px; height: 8px; border-radius: 50%;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .geo-time {
+    top: 14px; right: 14px;
+    padding: 6px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .geo-time .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--tw-safe);
+    box-shadow: 0 0 8px var(--tw-safe);
+    animation: geo-blink 1.6s ease-in-out infinite;
+  }
+  @keyframes geo-blink { 50% { opacity: 0.3; } }
+  .geo-stats {
+    top: 14px; left: 14px;
+    padding: 10px 14px;
+    display: flex; gap: 22px;
+  }
+  .geo-stats .stat .v {
+    font-family: var(--tw-font-mono);
+    font-size: 18px;
+    color: var(--tw-fg-0);
+    line-height: 1;
+  }
+  .geo-stats .stat .l {
+    font-family: var(--tw-font-mono);
+    font-size: 9px;
+    color: var(--tw-fg-2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  /* ── Right side panel ─────────────────────────────────── */
+  .geo-side {
+    background: var(--tw-bg-1);
+    border: 1px solid var(--tw-line);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .geo-side-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--tw-line);
+  }
+  .geo-side-tabs button {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 12px 10px;
+    font-family: var(--tw-font-mono);
+    font-size: 11px;
+    color: var(--tw-fg-2);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .geo-side-tabs button.active {
+    color: var(--tw-fg-0);
+    border-bottom-color: var(--tw-accent);
+  }
+  .geo-side-tabs button:hover:not(.active) { color: var(--tw-fg-1); }
+
+  .geo-side-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .geo-event {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--tw-line);
+    cursor: pointer;
+  }
+  .geo-event:hover { background: var(--tw-bg-2); }
+  .geo-event.active { background: var(--tw-accent-soft); }
+
+  .geo-event-mark {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .geo-event-mark.crit { background: var(--tw-critical); color: var(--tw-critical); }
+  .geo-event-mark.warn { background: var(--tw-warn); color: var(--tw-warn); }
+  .geo-event-mark.info { background: var(--tw-info); color: var(--tw-info); }
+  .geo-event-mark.lookalike { background: oklch(0.78 0.14 75); color: oklch(0.78 0.14 75); }
+
+  .geo-event-body .src {
+    font-family: var(--tw-font-mono);
+    font-size: 12px;
+    color: var(--tw-fg-0);
+    margin-bottom: 2px;
+  }
+  .geo-event-body .desc {
+    font-size: 12px;
+    color: var(--tw-fg-1);
+    line-height: 1.4;
+  }
+  .geo-event-body .meta {
+    display: flex; gap: 10px;
+    font-family: var(--tw-font-mono);
+    font-size: 10px;
+    color: var(--tw-fg-2);
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .geo-event-time {
+    font-family: var(--tw-font-mono);
+    font-size: 10px;
+    color: var(--tw-fg-2);
+    white-space: nowrap;
+  }
+
+  /* country list */
+  .geo-country {
+    display: grid;
+    grid-template-columns: 26px 1fr 60px auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--tw-line);
+    cursor: pointer;
+  }
+  .geo-country:hover { background: var(--tw-bg-2); }
+  .geo-country .flag {
+    width: 22px; height: 16px;
+    background: var(--tw-bg-3);
+    border: 1px solid var(--tw-line);
+    border-radius: 2px;
+    font-family: var(--tw-font-mono);
+    font-size: 9px;
+    color: var(--tw-fg-1);
+    display: grid; place-items: center;
+  }
+  .geo-country .name {
+    font-size: 12px;
+    color: var(--tw-fg-0);
+  }
+  .geo-country .count {
+    font-family: var(--tw-font-mono);
+    font-size: 12px;
+    color: var(--tw-fg-1);
+    text-align: right;
+  }
+  .geo-country .bar {
+    width: 60px;
+    height: 4px;
+    background: var(--tw-bg-3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .geo-country .bar > div {
+    height: 100%;
+    background: var(--tw-critical);
+    border-radius: 2px;
+  }
+  .geo-country.warn .bar > div { background: var(--tw-warn); }
+  .geo-country.info .bar > div { background: var(--tw-info); }
+
+  /* ── Layout ───────────────────────────────────────────── */
+  .geo-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .geo-bottom {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ── Variant: choropleth heat ──────────────────────────── */
+  [data-variant="heat"] .geo-map-card .world .dot { display: none; }
+  [data-variant="heat"] .geo-map-card .world .land {
+    fill: var(--tw-bg-2);
+    stroke: var(--tw-line);
+    stroke-width: 0.5;
+  }
+  [data-variant="heat"] .geo-map-card .world .land[data-h="1"] { fill: oklch(0.32 0.03 240); }
+  [data-variant="heat"] .geo-map-card .world .land[data-h="2"] { fill: oklch(0.42 0.08 60); }
+  [data-variant="heat"] .geo-map-card .world .land[data-h="3"] { fill: oklch(0.55 0.14 50); }
+  [data-variant="heat"] .geo-map-card .world .land[data-h="4"] { fill: oklch(0.62 0.18 30); }
+  [data-variant="heat"] .geo-map-card .world .land[data-h="5"] { fill: oklch(0.66 0.20 25); }
+
+  [data-variant="dots"] .geo-map-card .world .land { display: none; }
+
+  /* variant toggle */
+  .geo-variant-toggle {
+    display: inline-flex;
+    border: 1px solid var(--tw-line);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--tw-bg-1);
+  }
+  .geo-variant-toggle button {
+    background: transparent;
+    border: 0;
+    padding: 6px 12px;
+    font-family: var(--tw-font-mono);
+    font-size: 11px;
+    color: var(--tw-fg-2);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .geo-variant-toggle button.active {
+    background: var(--tw-bg-2);
+    color: var(--tw-fg-0);
+  }
+</style>
+
+<!-- Header -->
+<div class="tw-page-head" style="margin-bottom:18px">
+  <div>
+    <div class="tw-eyebrow">Monitor · live feed</div>
+    <h1>Geographic activity</h1>
+    <p class="tw-fg-2">Where threat events, dark‑web mentions, and lookalike registrations are originating from. Last 24 hours, refreshing every 30s.</p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="geo-variant-toggle" role="tablist">
+      <button class="active" data-set-variant="dots">Dots</button>
+      <button data-set-variant="heat">Heat</button>
+    </div>
+    <div class="tw-select tw-mono" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      Last 24h
+    </div>
+    <button class="tw-btn tw-btn-ghost"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
+  </div>
+</div>
+
+<!-- Filter strip -->
+<div class="tw-card" style="padding:10px 14px;margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <span class="tw-mono tw-fg-2" style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;margin-right:4px">Layers</span>
+  <button class="tw-chip active"><span class="dot crit"></span>Critical · 12</button>
+  <button class="tw-chip active"><span class="dot warn"></span>Suspicious · 38</button>
+  <button class="tw-chip active"><span class="dot info"></span>Dark‑web mentions · 27</button>
+  <button class="tw-chip active" style="--tw-chip-color:oklch(0.78 0.14 75)"><span class="dot" style="background:oklch(0.78 0.14 75)"></span>Lookalike registrations · 9</button>
+  <button class="tw-chip">Login attempts · 142</button>
+  <button class="tw-chip">Bot signatures · 88</button>
+  <span style="flex:1"></span>
+  <span class="tw-mono tw-fg-2" style="font-size:10px">Showing <b style="color:var(--tw-fg-0)">86</b> of 316 events</span>
+</div>
+
+<div class="geo-grid" data-variant="dots" id="geoGrid">
+  <!-- Map -->
+  <div class="geo-map-card" id="geoMap">
+    <svg class="world" viewBox="0 0 1000 520" preserveAspectRatio="none" id="worldSvg">
+      <!-- graticule -->
+      <g class="grat">
+        <line x1="0" y1="130" x2="1000" y2="130"/>
+        <line x1="0" y1="260" x2="1000" y2="260"/>
+        <line x1="0" y1="390" x2="1000" y2="390"/>
+        <line x1="166" y1="0" x2="166" y2="520"/>
+        <line x1="333" y1="0" x2="333" y2="520"/>
+        <line x1="500" y1="0" x2="500" y2="520"/>
+        <line x1="666" y1="0" x2="666" y2="520"/>
+        <line x1="833" y1="0" x2="833" y2="520"/>
+      </g>
+      <!-- land masks (filled in by script: dots OR polygons) -->
+      <g id="worldLand"></g>
+      <!-- arcs (origin → target) -->
+      <g id="arcsLayer"></g>
+    </svg>
+
+    <!-- HUD overlays -->
+    <div class="geo-overlay geo-stats">
+      <div class="stat"><div class="v tw-num">316</div><div class="l">events 24h</div></div>
+      <div class="stat"><div class="v tw-num">42</div><div class="l">countries</div></div>
+      <div class="stat"><div class="v tw-num">12</div><div class="l">critical</div></div>
+      <div class="stat"><div class="v tw-num">9</div><div class="l">lookalikes</div></div>
+    </div>
+    <div class="geo-overlay geo-time"><span class="live-dot"></span>LIVE · 14:32:08 UTC</div>
+    <div class="geo-overlay geo-legend">
+      <div class="row"><span class="dot-key" style="background:var(--tw-critical);color:var(--tw-critical)"></span>Critical event</div>
+      <div class="row"><span class="dot-key" style="background:var(--tw-warn);color:var(--tw-warn)"></span>Suspicious activity</div>
+      <div class="row"><span class="dot-key" style="background:var(--tw-info);color:var(--tw-info)"></span>Dark‑web mention</div>
+      <div class="row"><span class="dot-key" style="background:oklch(0.78 0.14 75);color:oklch(0.78 0.14 75)"></span>Lookalike domain</div>
+    </div>
+
+    <!-- target marker for protected org HQ -->
+    <div class="geo-target" style="left:24%;top:42%">
+      <div class="geo-target-label">northwind‑bank.com · NYC</div>
+    </div>
+
+    <!-- event pulses (positioned in %) -->
+    <div class="geo-pulse crit"      style="left:60%;top:46%"      data-event="0"></div>
+    <div class="geo-pulse crit"      style="left:73%;top:48%"      data-event="1"></div>
+    <div class="geo-pulse warn"      style="left:54%;top:39%"      data-event="2"></div>
+    <div class="geo-pulse warn"      style="left:48%;top:41%"      data-event="3"></div>
+    <div class="geo-pulse info"      style="left:78%;top:52%"      data-event="4"></div>
+    <div class="geo-pulse info"      style="left:68%;top:65%"      data-event="5"></div>
+    <div class="geo-pulse info"      style="left:34%;top:60%"      data-event="6"></div>
+    <div class="geo-pulse lookalike" style="left:51%;top:46%"      data-event="7"></div>
+    <div class="geo-pulse lookalike" style="left:81%;top:54%"      data-event="8"></div>
+    <div class="geo-pulse warn"      style="left:88%;top:62%"      data-event="9"></div>
+    <div class="geo-pulse crit"      style="left:64%;top:50%"      data-event="10"></div>
+  </div>
+
+  <!-- Side panel -->
+  <div class="geo-side">
+    <div class="geo-side-tabs" id="sideTabs">
+      <button class="active" data-tab="events">Events · 86</button>
+      <button data-tab="countries">Top countries</button>
+    </div>
+    <div class="geo-side-body" id="sidePanel"></div>
+  </div>
+</div>
+
+<!-- Bottom row -->
+<div class="geo-bottom">
+  <!-- Trend over time -->
+  <div class="tw-card" style="padding:18px">
+    <div class="tw-eyebrow" style="margin-bottom:12px">Activity over 24h</div>
+    <svg viewBox="0 0 480 140" style="width:100%;height:140px;display:block">
+      <g stroke="var(--tw-line)" stroke-width="0.5">
+        <line x1="0" y1="35"  x2="480" y2="35"/>
+        <line x1="0" y1="70"  x2="480" y2="70"/>
+        <line x1="0" y1="105" x2="480" y2="105"/>
+      </g>
+      <!-- stacked bars: critical, suspicious, mentions, lookalikes -->
+      <g id="trendBars"></g>
+      <g font-family="ui-monospace,monospace" font-size="9" fill="var(--tw-fg-2)">
+        <text x="0"   y="135">00:00</text>
+        <text x="120" y="135">06:00</text>
+        <text x="240" y="135">12:00</text>
+        <text x="360" y="135">18:00</text>
+        <text x="445" y="135">now</text>
+      </g>
+    </svg>
+    <div style="display:flex;gap:14px;margin-top:8px;font-family:var(--tw-font-mono);font-size:10px;color:var(--tw-fg-2)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:var(--tw-critical);border-radius:1px"></span>Critical</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:var(--tw-warn);border-radius:1px"></span>Suspicious</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:var(--tw-info);border-radius:1px"></span>Mentions</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:oklch(0.78 0.14 75);border-radius:1px"></span>Lookalikes</span>
+    </div>
+  </div>
+
+  <!-- ASN / hosting -->
+  <div class="tw-card" style="padding:18px">
+    <div class="tw-eyebrow" style="margin-bottom:12px">Top hosting ASNs</div>
+    <table class="tw-table" style="font-size:12px">
+      <thead><tr><th style="width:38px">#</th><th>ASN</th><th style="text-align:right">Events</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><span class="tw-mono">AS14061</span><div class="tw-fg-2" style="font-size:11px">DigitalOcean · US</div></td><td class="tw-num" style="text-align:right">42</td></tr>
+        <tr><td>2</td><td><span class="tw-mono">AS49505</span><div class="tw-fg-2" style="font-size:11px">SELECTEL · RU</div></td><td class="tw-num" style="text-align:right">31</td></tr>
+        <tr><td>3</td><td><span class="tw-mono">AS4837</span><div class="tw-fg-2" style="font-size:11px">CHINA169 · CN</div></td><td class="tw-num" style="text-align:right">27</td></tr>
+        <tr><td>4</td><td><span class="tw-mono">AS9009</span><div class="tw-fg-2" style="font-size:11px">M247 · GB</div></td><td class="tw-num" style="text-align:right">19</td></tr>
+        <tr><td>5</td><td><span class="tw-mono">AS9498</span><div class="tw-fg-2" style="font-size:11px">BBIL · IN</div></td><td class="tw-num" style="text-align:right">14</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Targeted assets -->
+  <div class="tw-card" style="padding:18px">
+    <div class="tw-eyebrow" style="margin-bottom:12px">Most targeted assets</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span class="tw-mono" style="font-size:12px">login.northwind‑bank.com</span>
+          <span class="tw-mono tw-num" style="font-size:11px;color:var(--tw-fg-1)">128</span>
+        </div>
+        <div style="height:3px;background:var(--tw-bg-3);border-radius:2px;overflow:hidden"><div style="width:92%;height:100%;background:var(--tw-critical)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span class="tw-mono" style="font-size:12px">api.northwind‑bank.com</span>
+          <span class="tw-mono tw-num" style="font-size:11px;color:var(--tw-fg-1)">74</span>
+        </div>
+        <div style="height:3px;background:var(--tw-bg-3);border-radius:2px;overflow:hidden"><div style="width:54%;height:100%;background:var(--tw-warn)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span class="tw-mono" style="font-size:12px">m.northwind‑bank.com</span>
+          <span class="tw-mono tw-num" style="font-size:11px;color:var(--tw-fg-1)">52</span>
+        </div>
+        <div style="height:3px;background:var(--tw-bg-3);border-radius:2px;overflow:hidden"><div style="width:38%;height:100%;background:var(--tw-warn)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span class="tw-mono" style="font-size:12px">corp.northwind‑bank.com</span>
+          <span class="tw-mono tw-num" style="font-size:11px;color:var(--tw-fg-1)">31</span>
+        </div>
+        <div style="height:3px;background:var(--tw-bg-3);border-radius:2px;overflow:hidden"><div style="width:22%;height:100%;background:var(--tw-info)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span class="tw-mono" style="font-size:12px">cdn.northwind‑bank.com</span>
+          <span class="tw-mono tw-num" style="font-size:11px;color:var(--tw-fg-1)">14</span>
+        </div>
+        <div style="height:3px;background:var(--tw-bg-3);border-radius:2px;overflow:hidden"><div style="width:10%;height:100%;background:var(--tw-info)"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ──────────────────────────────────────────────────────────
+     World map — generated procedurally as a dot stipple over
+     hand-tuned land polygons. Equirectangular projection
+     (lon −180..180 → x 0..1000, lat 90..−90 → y 0..520).
+     ────────────────────────────────────────────────────────── */
+  const land = [
+    // North America
+    "M150,90 L290,80 L320,120 L300,160 L260,200 L230,240 L210,260 L150,250 L120,210 L100,160 L130,110 Z",
+    // Greenland
+    "M310,70 L360,60 L370,100 L340,130 L310,120 Z",
+    // Central America
+    "M210,260 L260,255 L260,290 L230,300 L215,290 Z",
+    // South America
+    "M260,290 L320,290 L340,360 L320,440 L290,470 L260,460 L240,400 L240,330 Z",
+    // Europe
+    "M460,110 L560,100 L580,140 L560,170 L500,180 L470,160 L455,130 Z",
+    // UK/Ireland
+    "M440,120 L460,115 L460,150 L445,150 Z",
+    // Scandinavia
+    "M510,70 L560,75 L570,110 L530,115 L515,95 Z",
+    // North Africa / Middle East
+    "M470,180 L600,175 L640,220 L620,260 L560,275 L500,260 L475,225 Z",
+    // Sub-Saharan Africa
+    "M500,260 L620,260 L640,330 L600,400 L560,420 L520,400 L495,330 Z",
+    // Russia / Siberia
+    "M560,80 L820,70 L860,100 L830,140 L780,150 L700,140 L600,140 L575,110 Z",
+    // Central Asia / India
+    "M640,170 L760,170 L780,230 L740,265 L680,260 L640,225 Z",
+    // SE Asia / China
+    "M740,170 L840,170 L850,230 L800,255 L760,250 L745,210 Z",
+    // Japan
+    "M860,170 L880,165 L890,200 L870,210 L860,195 Z",
+    // Indonesia
+    "M780,290 L860,285 L880,310 L820,320 L790,315 Z",
+    // Australia
+    "M820,360 L920,350 L930,400 L880,425 L830,415 L815,385 Z",
+    // NZ
+    "M940,420 L960,415 L965,440 L945,445 Z",
+    // Antarctica strip
+    "M0,490 L1000,490 L1000,520 L0,520 Z",
+  ];
+
+  const worldLand = document.getElementById('worldLand');
+
+  // Render BOTH dot version and polygon version. Variant CSS toggles which is shown.
+  // Polygon (heat) version with hand-tuned activity weights.
+  const heatWeights = [4,1,2,3,4,3,2,5,3,4,4,3,4,2,2,1,1];
+  land.forEach((d, i) => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', d);
+    p.setAttribute('class','land');
+    p.setAttribute('data-h', heatWeights[i] || 1);
+    worldLand.appendChild(p);
+  });
+
+  // Dot stipple: generate a grid of points and only keep those inside any land polygon
+  // (using SVGGeometryElement.isPointInFill in a hidden test path)
+  const tester = document.createElementNS('http://www.w3.org/2000/svg','path');
+  tester.setAttribute('d', land.filter((_,i) => i !== land.length-1).join(' '));
+  worldLand.appendChild(tester);
+  // Antarctica too thin — use full path including last
+  const allTester = document.createElementNS('http://www.w3.org/2000/svg','path');
+  allTester.setAttribute('d', land.join(' '));
+  worldLand.appendChild(allTester);
+
+  const dotsFrag = document.createDocumentFragment();
+  const STEP = 7;
+  const pt = document.getElementById('worldSvg').createSVGPoint();
+  for (let y = 30; y < 500; y += STEP) {
+    for (let x = 0; x < 1000; x += STEP) {
+      pt.x = x; pt.y = y;
+      // Only test against the combined polygon
+      if (allTester.isPointInFill(pt)) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx', x);
+        c.setAttribute('cy', y);
+        c.setAttribute('r', 1.1);
+        c.setAttribute('class','dot');
+        dotsFrag.appendChild(c);
+      }
+    }
+  }
+  worldLand.appendChild(dotsFrag);
+  // remove testers from view
+  tester.remove();
+  allTester.style.display = 'none';
+  allTester.setAttribute('fill','transparent');
+  allTester.setAttribute('stroke','none');
+
+  /* ──────────────────────────────────────────────────────────
+     Arcs from origin → NYC target (24%, 42%)
+     ────────────────────────────────────────────────────────── */
+  const TGT = { x: 240, y: 218 }; // px in 1000×520
+  const arcs = [
+    { x: 600, y: 240, cls: 'crit' },
+    { x: 730, y: 250, cls: 'crit' },
+    { x: 540, y: 203, cls: 'warn' },
+    { x: 780, y: 270, cls: 'info' },
+    { x: 510, y: 240, cls: 'info' },
+    { x: 880, y: 322, cls: 'warn' },
+  ];
+  const arcsLayer = document.getElementById('arcsLayer');
+  arcs.forEach(a => {
+    const dx = a.x - TGT.x, dy = a.y - TGT.y;
+    const mx = (a.x + TGT.x) / 2;
+    const my = (a.y + TGT.y) / 2 - Math.hypot(dx, dy) * 0.35;
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', `M${TGT.x},${TGT.y} Q${mx},${my} ${a.x},${a.y}`);
+    p.setAttribute('class', `geo-arc ${a.cls}`);
+    arcsLayer.appendChild(p);
+  });
+
+  /* ──────────────────────────────────────────────────────────
+     Side panel — events feed
+     ────────────────────────────────────────────────────────── */
+  const events = [
+    { sev: 'crit', src: '185.220.101.42', country: 'RU', city: 'Moscow', desc: 'Credential‑stuffing burst against login.northwind‑bank.com — 4,820 attempts/min', meta: ['ASN AS49505', 'TOR exit', '14:31:51'] },
+    { sev: 'crit', src: '103.146.23.118', country: 'CN', city: 'Beijing', desc: 'Automated scraping of customer portal pricing endpoints', meta: ['ASN AS4837', 'bot', '14:30:22'] },
+    { sev: 'lookalike', src: 'northvvind‑bank.com', country: 'NL', city: 'Amsterdam', desc: 'New domain registered today — Cyrillic look‑alike with active MX records', meta: ['NameCheap', 'TLS issued 03h ago', '14:28:10'] },
+    { sev: 'warn', src: '94.131.7.221', country: 'NL', city: 'Amsterdam', desc: 'Phishing kit fingerprint detected on hosted page', meta: ['ASN AS9009', '14:25:44'] },
+    { sev: 'info',  src: 't.me/cardz_market', country: 'IR', city: 'Tehran', desc: 'Mention of "northwind" in a Telegram fraud channel — 2 new posts', meta: ['Telegram', '14:22:09'] },
+    { sev: 'crit', src: '198.51.100.7', country: 'US', city: 'Ashburn', desc: 'SQL‑injection probes against /api/v2/accounts (412 unique payloads)', meta: ['ASN AS14061', '14:21:00'] },
+    { sev: 'lookalike', src: 'n0rthwind-bank.com', country: 'IN', city: 'Mumbai', desc: 'Zero‑day registration with copied logo and login form', meta: ['NameSilo', '14:18:32'] },
+    { sev: 'warn', src: '46.165.230.5', country: 'DE', city: 'Frankfurt', desc: 'Anomalous geo for staff SSO login — flagged for verification', meta: ['SAML', '14:15:11'] },
+    { sev: 'info',  src: 'darkforums.cc', country: 'BR', city: 'São Paulo', desc: 'Thread referencing leaked employee email syntax', meta: ['Forum', '14:11:56'] },
+    { sev: 'info',  src: 'breachforums.is', country: 'GB', city: 'London', desc: 'Post offering "fresh US bank logs" — keyword match', meta: ['Forum', '14:09:03'] },
+    { sev: 'crit', src: '202.51.74.190', country: 'AU', city: 'Sydney', desc: 'WAF tripped 47×: known C2 callback pattern', meta: ['ASN AS9498', '14:06:48'] },
+  ];
+
+  const eventsList = events.map((e, i) => `
+    <div class="geo-event" data-event-row="${i}">
+      <div class="geo-event-mark ${e.sev}"></div>
+      <div class="geo-event-body">
+        <div class="src">${e.src}</div>
+        <div class="desc">${e.desc}</div>
+        <div class="meta"><span>${e.country} · ${e.city}</span>${e.meta.map(m => `<span>· ${m}</span>`).join('')}</div>
+      </div>
+      <div class="geo-event-time">${e.meta[e.meta.length-1].match(/\d/) ? e.meta[e.meta.length-1] : ''}</div>
+    </div>
+  `).join('');
+
+  const countries = [
+    { code:'RU', name:'Russia', count:64, sev:'crit', pct:100 },
+    { code:'CN', name:'China', count:48, sev:'crit', pct:75 },
+    { code:'US', name:'United States', count:42, sev:'warn', pct:65 },
+    { code:'NL', name:'Netherlands', count:31, sev:'warn', pct:48 },
+    { code:'IR', name:'Iran', count:24, sev:'crit', pct:38 },
+    { code:'IN', name:'India', count:21, sev:'warn', pct:33 },
+    { code:'DE', name:'Germany', count:18, sev:'info', pct:28 },
+    { code:'BR', name:'Brazil', count:14, sev:'info', pct:22 },
+    { code:'GB', name:'United Kingdom', count:12, sev:'info', pct:19 },
+    { code:'KP', name:'North Korea', count:9,  sev:'crit', pct:14 },
+    { code:'AU', name:'Australia', count:7,  sev:'warn', pct:11 },
+    { code:'TR', name:'Turkey', count:6,  sev:'info', pct:9 },
+  ];
+  const countriesList = countries.map(c => `
+    <div class="geo-country ${c.sev}">
+      <div class="flag">${c.code}</div>
+      <div class="name">${c.name}</div>
+      <div class="bar"><div style="width:${c.pct}%"></div></div>
+      <div class="count">${c.count}</div>
+    </div>
+  `).join('');
+
+  function setTab(name) {
+    document.querySelectorAll('#sideTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.getElementById('sidePanel').innerHTML = name === 'events' ? eventsList : countriesList;
+    if (name === 'events') {
+      document.querySelectorAll('[data-event-row]').forEach(r => {
+        r.addEventListener('mouseenter', () => {
+          const i = r.dataset.eventRow;
+          document.querySelectorAll('.geo-pulse').forEach(p => p.style.transform = p.dataset.event === i ? 'translate(-50%,-50%) scale(1.6)' : 'translate(-50%,-50%)');
+        });
+        r.addEventListener('mouseleave', () => {
+          document.querySelectorAll('.geo-pulse').forEach(p => p.style.transform = 'translate(-50%,-50%)');
+        });
+      });
+    }
+  }
+  document.querySelectorAll('#sideTabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  setTab('events');
+
+  /* ── Variant toggle ── */
+  document.querySelectorAll('[data-set-variant]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-set-variant]').forEach(x => x.classList.toggle('active', x === b));
+      document.getElementById('geoGrid').dataset.variant = b.dataset.setVariant;
+    });
+  });
+
+  /* ── Trend bars ── */
+  const trendBars = document.getElementById('trendBars');
+  // 24 bars, each composed of 4 stacked segments
+  const segs = [
+    { color: 'var(--tw-info)', max: 8 },
+    { color: 'oklch(0.78 0.14 75)', max: 4 },
+    { color: 'var(--tw-warn)', max: 12 },
+    { color: 'var(--tw-critical)', max: 6 },
+  ];
+  const heights = [
+    [3,2,5,1],[2,1,4,1],[2,1,3,0],[1,1,4,1],[2,1,3,1],[1,0,2,0],
+    [1,0,2,0],[2,1,3,1],[3,1,4,1],[4,2,6,2],[5,2,7,3],[6,2,8,3],
+    [7,2,9,3],[6,3,8,3],[5,2,7,2],[4,2,6,2],[5,2,8,3],[6,3,9,4],
+    [8,3,11,4],[7,3,10,5],[9,4,11,4],[8,3,10,4],[7,3,9,4],[6,4,11,5],
+  ];
+  const W = 480, H = 110, BW = (W - 24*2) / 24;
+  heights.forEach((h, i) => {
+    let y = H;
+    h.forEach((v, k) => {
+      const hh = v * 4;
+      const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x', i*(BW+2));
+      r.setAttribute('y', y - hh);
+      r.setAttribute('width', BW);
+      r.setAttribute('height', Math.max(0,hh));
+      r.setAttribute('fill', segs[k].color);
+      r.setAttribute('opacity', i === 23 ? 1 : 0.85);
+      trendBars.appendChild(r);
+      y -= hh;
+    });
+  });
+</script>

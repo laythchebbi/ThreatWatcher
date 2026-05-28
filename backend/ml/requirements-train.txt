@@ -1,0 +1,15 @@
+# Separate training/export dependency set (Python 3.10+ recommended).
+# Used by:
+#   backend/ml/train_url_classifier.py
+#   backend/ml/export_onnx.py
+#
+# Do NOT install alongside backend/ml/requirements.txt — those are pinned to
+# sklearn 0.22.1 for backward-compat with the legacy .pkl files. This file
+# is the M4 forward-path stack.
+
+scikit-learn==1.4.2
+numpy==1.26.4
+pandas==2.2.2
+joblib==1.4.2
+skl2onnx==1.16.0
+onnxruntime==1.18.0

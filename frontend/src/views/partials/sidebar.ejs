@@ -1,0 +1,34 @@
+<aside class="tw-sidebar">
+  <div class="tw-brand">
+    <div class="tw-brand-mark">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <path d="M13 2 3 5v8c0 5.5 4.2 9.5 10 11 5.8-1.5 10-5.5 10-11V5l-10-3Z" fill="var(--tw-accent-soft)" stroke="var(--tw-accent)" stroke-width="1.4"/>
+        <circle cx="13" cy="12" r="3" fill="var(--tw-accent)"/>
+        <path d="M13 9v6M10 12h6" stroke="var(--tw-bg-0)" stroke-width="1.2"/>
+      </svg>
+    </div>
+    <div>
+      <div class="tw-brand-name">Threat Watcher</div>
+      <div class="tw-brand-sub">v2.4 · prod</div>
+    </div>
+  </div>
+  <% nav.forEach(function (n) { %>
+    <% if (n.section) { %>
+      <div class="tw-nav-section"><%= n.section %></div>
+    <% } else { %>
+      <a class="tw-nav-item<%= n.id === active ? ' active' : '' %>" href="<%= n.href %>">
+        <%- icons[n.icon] || '' %>
+        <span><%= n.label %></span>
+        <% if (n.count) { %><span class="tw-nav-count"><%= n.count %></span><% } %>
+      </a>
+    <% } %>
+  <% }); %>
+  <div style="flex:1"></div>
+  <div style="padding:10px;border-top:1px solid var(--tw-line);display:flex;align-items:center;gap:10px">
+    <div style="width:28px;height:28px;border-radius:50%;background:var(--tw-accent-soft);color:var(--tw-accent);display:grid;place-items:center;font-family:var(--tw-font-mono);font-size:12px;font-weight:500">JC</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;color:var(--tw-fg-0);font-weight:500">J. Castellanos</div>
+      <div style="font-family:var(--tw-font-mono);font-size:10px;color:var(--tw-fg-2)">SOC · L2</div>
+    </div>
+  </div>
+</aside>

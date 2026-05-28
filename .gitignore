@@ -1,0 +1,31 @@
+# Legacy v1 codebase — kept on disk for reference only. It contains the
+# hardcoded credentials catalogued in SECURITY.md and must never be committed
+# into this repo. Excluded wholesale.
+ThreatWatcher/
+
+node_modules/
+**/__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+.env.local
+# husky internals (regenerated on install)
+.husky/_/
+.DS_Store
+._*
+*.pkl
+*.joblib
+*.session
+domain.zip
+dist/
+*.log
+coverage/
+.idea/
+.vscode/
+*.swp
+.npm/
+.pnpm-store/
+.cache/
+# Personal Claude Code settings (per-user, not shared)
+.claude/settings.local.json

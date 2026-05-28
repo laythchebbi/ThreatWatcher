@@ -1,0 +1,22 @@
+[Unit]
+Description=Threat Watcher dark-web crawler (one-shot)
+After=network-online.target tor.service mongodb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=threatwatcher
+Group=threatwatcher
+WorkingDirectory=/opt/threat-watcher/backend
+EnvironmentFile=/opt/threat-watcher/backend/.env
+ExecStart=/usr/bin/python3 scripts/darkweb_crawl.py
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/log/threat-watcher
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tw-crawl

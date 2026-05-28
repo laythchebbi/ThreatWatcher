@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title><%= title %></title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/styles.css">
+<%- style %>
+</head>
+<body>
+<div class="tw-shell">
+  <%- include('partials/sidebar') %>
+  <main class="tw-main">
+    <%- include('partials/topbar') %>
+    <div class="tw-page">
+      <div id="tw-page-content">
+        <%- body %>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/static/js/app.js"></script>
+<%- script %>
+</body>
+</html>

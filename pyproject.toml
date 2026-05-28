@@ -1,0 +1,27 @@
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+extend-exclude = [
+    "ThreatWatcher",
+    "**/venv",
+    "**/.venv",
+    "backend/ml/models",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "C4", "TRY", "BLE"]
+ignore = [
+    "TRY003",  # long error messages allowed
+    "BLE001",  # blanket-except is sometimes intentional in worker loops
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+extend-exclude = '''
+/(
+  ThreatWatcher
+  | venv
+  | \.venv
+)/
+'''

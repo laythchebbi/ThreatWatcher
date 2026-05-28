@@ -1,0 +1,7 @@
+node_modules/
+ThreatWatcher/
+**/coverage/
+**/*.min.css
+**/*.min.js
+**/styles.css
+frontend/src/public/js/app.js

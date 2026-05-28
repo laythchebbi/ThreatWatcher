@@ -1,0 +1,27 @@
+# gitleaks config — block re-introduction of secrets and known leaked values.
+title = "Threat Watcher gitleaks"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "leaked-mongo-password"
+description = "Known leaked MongoDB Atlas password from legacy v1"
+regex = '''***REMOVED***'''
+
+[[rules]]
+id = "leaked-whoisxml-key"
+description = "Known leaked WhoisXML API key from legacy v1"
+regex = '''***REMOVED***'''
+
+[[rules]]
+id = "leaked-mssql-password"
+description = "Known leaked MSSQL password from legacy v1"
+regex = '''***REMOVED***'''
+
+[allowlist]
+description = "Allow these paths to reference the leaked values for documentation"
+paths = [
+  '''SECURITY\.md''',
+  '''\.gitleaks\.toml''',
+]

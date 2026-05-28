@@ -1,0 +1,16 @@
+# Top-level Python deps for ML helpers. Pin via:
+#   pip install pip-tools
+#   pip-compile ml/requirements.in -o ml/requirements.txt --strip-extras
+#
+# Do NOT bump scikit-learn until M4 (model retrain) — bumping breaks the
+# pickled artifacts produced under 0.22.x.
+
+scikit-learn==0.22.1
+numpy==1.22.2
+joblib==1.1.0
+beautifulsoup4==4.11.1
+
+# Dark-web crawler (scripts/darkweb_crawl.py)
+requests==2.31.0
+PySocks==1.7.1
+pymongo==4.6.3

@@ -1,0 +1,65 @@
+<style>
+.new-scan-wrap { max-width:720px; margin:0 auto; }
+.new-scan-card { background:var(--tw-bg-1); border:1px solid var(--tw-line); border-radius:var(--tw-radius-lg); padding:28px; }
+.opts { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin:18px 0; }
+.opts label { display:flex; gap:10px; align-items:flex-start; padding:12px; background:var(--tw-bg-2); border:1px solid var(--tw-line); border-radius:var(--tw-radius); cursor:pointer; }
+.opts input { margin-top:3px; }
+.opts .label { font-weight:500; }
+.opts .sub { color:var(--tw-fg-2); font-size:12px; }
+</style>
+
+<div class="tw-page-head" style="margin-bottom:18px">
+  <div class="tw-eyebrow">Workspace · New scan</div>
+  <h1>Investigate a domain</h1>
+  <p class="tw-fg-2" style="margin:6px 0 0">We'll fan out to lookalike search, ML-scored URLs, page content, and dark-web hits — then aggregate into a SecureScore.</p>
+</div>
+
+<div class="new-scan-wrap">
+  <form class="new-scan-card" method="post" action="/new-scan">
+    <% if (typeof error !== "undefined" && error) { %>
+      <div class="tw-banner tw-banner-critical" style="margin-bottom:14px"><%= error %></div>
+    <% } %>
+    <label class="tw-label" for="domain">Protected domain</label>
+    <input class="tw-input tw-mono tw-input-lg" id="domain" name="domain" type="text"
+      placeholder="example.com" autocomplete="off" required
+      pattern="^[a-z0-9.-]+\.[a-z]{2,}$"
+      value="<%= typeof prefill !== 'undefined' ? prefill : '' %>">
+    <div class="tw-fg-2" style="font-size:12px;margin-top:6px">RFC-1035 hostnames only — punycode <code class="tw-mono">xn--</code> is supported.</div>
+
+    <div class="opts">
+      <label>
+        <input type="checkbox" name="sources" value="lookalikes" checked>
+        <div>
+          <div class="label">Lookalike domains</div>
+          <div class="sub">DNS-twist permutations, daily-registered scan</div>
+        </div>
+      </label>
+      <label>
+        <input type="checkbox" name="sources" value="ml" checked>
+        <div>
+          <div class="label">URL &amp; content ML</div>
+          <div class="sub">scikit-learn classifier scoring</div>
+        </div>
+      </label>
+      <label>
+        <input type="checkbox" name="sources" value="darkweb">
+        <div>
+          <div class="label">Dark-web cross-reference</div>
+          <div class="sub">Tor index, Telegram, forums</div>
+        </div>
+      </label>
+      <label>
+        <input type="checkbox" name="sources" value="whois">
+        <div>
+          <div class="label">WHOIS metadata</div>
+          <div class="sub">via WhoisXML API</div>
+        </div>
+      </label>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end">
+      <a class="tw-btn tw-btn-ghost" href="/dashboard">Cancel</a>
+      <button class="tw-btn tw-btn-primary tw-btn-lg" type="submit">Run scan</button>
+    </div>
+  </form>
+</div>

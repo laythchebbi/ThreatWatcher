@@ -1,0 +1,156 @@
+<style>
+.tw-stat-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:18px; }
+@media (max-width:1100px) { .tw-stat-grid { grid-template-columns:repeat(2,1fr); } }
+.tw-stat-card {
+  background:var(--tw-bg-1); border:1px solid var(--tw-line); border-radius:var(--tw-radius-lg);
+  padding:18px; display:flex; flex-direction:column; gap:6px;
+}
+.tw-stat-label { font-family:var(--tw-font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--tw-fg-2); }
+.tw-stat-value { font-size:32px; font-weight:500; letter-spacing:-0.02em; color:var(--tw-fg-0); font-variant-numeric:tabular-nums; }
+.tw-stat-delta { font-family:var(--tw-font-mono); font-size:11px; color:var(--tw-fg-2); }
+.tw-stat-delta.up   { color:var(--tw-critical); }
+.tw-stat-delta.down { color:var(--tw-safe); }
+
+.tw-dash-row { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px; }
+@media (max-width:1100px) { .tw-dash-row { grid-template-columns:1fr; } }
+
+.tw-panel { background:var(--tw-bg-1); border:1px solid var(--tw-line); border-radius:var(--tw-radius-lg); }
+.tw-panel-head { padding:14px 16px; border-bottom:1px solid var(--tw-line); display:flex; justify-content:space-between; align-items:center; }
+.tw-panel-body { padding:6px 0; }
+
+.tw-scan-bar {
+  display:flex; gap:0; align-items:center; background:var(--tw-bg-1);
+  border:1px solid var(--tw-line); border-radius:var(--tw-radius-lg); padding:6px; margin-bottom:18px;
+}
+.tw-scan-bar input {
+  flex:1; background:transparent; border:0; outline:0; color:var(--tw-fg-0);
+  font-family:var(--tw-font-mono); font-size:14px; padding:10px 14px;
+}
+.tw-scan-bar input::placeholder { color:var(--tw-fg-3); }
+
+.tw-table-min { width:100%; border-collapse:collapse; font-size:13px; }
+.tw-table-min th, .tw-table-min td { padding:9px 16px; text-align:left; }
+.tw-table-min thead { border-bottom:1px solid var(--tw-line); }
+.tw-table-min thead th { color:var(--tw-fg-2); font-family:var(--tw-font-mono); font-size:10px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; }
+.tw-table-min tbody tr { border-bottom:1px solid var(--tw-line); }
+.tw-table-min tbody tr:last-child { border-bottom:0; }
+.tw-table-min tbody tr:hover { background:var(--tw-bg-2); }
+
+.tw-monitor-list { display:flex; flex-direction:column; padding:8px 0; }
+.tw-monitor-item { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; border-bottom:1px solid var(--tw-line); }
+.tw-monitor-item:last-child { border-bottom:0; }
+.tw-monitor-item .domain { font-family:var(--tw-font-mono); font-size:13px; color:var(--tw-fg-0); }
+.tw-monitor-item .sub { font-family:var(--tw-font-mono); font-size:10px; color:var(--tw-fg-2); }
+</style>
+
+<div class="tw-page-head" style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end">
+  <div>
+    <div class="tw-eyebrow">Workspace · Dashboard</div>
+    <h1>Good evening, <%= (user && user.email) ? user.email.split("@")[0] : "analyst" %></h1>
+  </div>
+  <div style="font-family:var(--tw-font-mono); font-size:11px; color:var(--tw-fg-2)">
+    <%= new Date().toUTCString() %>
+  </div>
+</div>
+
+<form class="tw-scan-bar" id="scanBar" method="post" action="/new-scan">
+  <span style="padding:0 4px 0 14px;color:var(--tw-fg-2);display:flex;align-items:center">
+    <%- icons.search %>
+  </span>
+  <input name="domain" placeholder="Scan a new domain… e.g. mycompany.com" autocomplete="off" required pattern="^[a-z0-9.-]+\.[a-z]{2,}$">
+  <button class="tw-btn tw-btn-primary" type="submit" style="margin-right:4px">Run scan</button>
+</form>
+
+<% const s = stats || { active: 0, lookalikes: 0, darkweb: 0, avgScore: "0.00" }; %>
+<div class="tw-stat-grid">
+  <div class="tw-stat-card">
+    <div class="tw-stat-label">Recent scans</div>
+    <div class="tw-stat-value tw-num"><%= s.active %></div>
+    <div class="tw-stat-delta">in history</div>
+  </div>
+  <div class="tw-stat-card">
+    <div class="tw-stat-label">Lookalike domains</div>
+    <div class="tw-stat-value tw-num" style="color:var(--tw-warn)"><%= s.lookalikes %></div>
+    <div class="tw-stat-delta up">▲ open</div>
+  </div>
+  <div class="tw-stat-card">
+    <div class="tw-stat-label">Dark-web hits</div>
+    <div class="tw-stat-value tw-num" style="color:var(--tw-critical)"><%= s.darkweb %></div>
+    <div class="tw-stat-delta">across <%= (monitored && monitored.length) || 0 %> monitored</div>
+  </div>
+  <div class="tw-stat-card">
+    <div class="tw-stat-label">Secure score (avg)</div>
+    <div class="tw-stat-value tw-num" style="color:var(--tw-safe)"><%= s.avgScore %></div>
+    <div class="tw-stat-delta">across scans</div>
+  </div>
+</div>
+
+<div class="tw-dash-row">
+  <div class="tw-panel">
+    <div class="tw-panel-head">
+      <div>
+        <div class="tw-eyebrow">Recent scans</div>
+        <h2>History</h2>
+      </div>
+      <a class="tw-btn tw-btn-ghost tw-btn-sm" href="/reports">View all →</a>
+    </div>
+    <div class="tw-panel-body">
+      <table class="tw-table-min" id="recentScans">
+        <thead><tr>
+          <th>Domain</th><th>SecureScore</th><th>Lookalikes</th><th>Created</th>
+        </tr></thead>
+        <tbody>
+          <% const recentRows = recent || []; %>
+          <% if (loadError) { %>
+            <tr><td colspan="4" style="text-align:center;color:var(--tw-fg-3);padding:24px">Backend unreachable.</td></tr>
+          <% } else if (recentRows.length === 0) { %>
+            <tr><td colspan="4" style="text-align:center;color:var(--tw-fg-3);padding:24px">No scans yet — run one from the bar above.</td></tr>
+          <% } else { %>
+            <% recentRows.forEach(function (rep) {
+                 const score = typeof rep.secureScore === "number" ? rep.secureScore.toFixed(2) : "—";
+                 const look = (rep.findings && rep.findings.lookalikes) || 0;
+                 const created = rep.createdAt ? new Date(rep.createdAt).toISOString().slice(0, 19) + "Z" : "—";
+            %>
+              <tr>
+                <td class="tw-mono"><a href="/scan/<%= rep._id %>"><%= rep.domain %></a></td>
+                <td class="tw-num"><%= score %></td>
+                <td class="tw-num"><%= look %></td>
+                <td class="tw-mono" style="color:var(--tw-fg-2)"><%= created %></td>
+              </tr>
+            <% }); %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tw-panel" id="monitored">
+    <div class="tw-panel-head">
+      <div>
+        <div class="tw-eyebrow">Monitor</div>
+        <h2>Monitored domains</h2>
+      </div>
+      <a class="tw-btn tw-btn-ghost tw-btn-sm" href="/settings#monitored">Manage</a>
+    </div>
+    <div class="tw-monitor-list">
+      <% (monitored || []).forEach(function (d) { %>
+        <div class="tw-monitor-item">
+          <div>
+            <div class="domain"><%= d %></div>
+            <div class="sub">last scan —</div>
+          </div>
+          <form method="post" action="/new-scan" style="margin:0">
+            <input type="hidden" name="domain" value="<%= d %>">
+            <button class="tw-btn tw-btn-sm tw-btn-ghost" type="submit">Re-scan</button>
+          </form>
+        </div>
+      <% }); %>
+      <% if (!monitored || monitored.length === 0) { %>
+        <div class="tw-monitor-item" style="justify-content:center;color:var(--tw-fg-3)">
+          No domains monitored yet. <a href="/settings#monitored" style="margin-left:6px">Add one →</a>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+

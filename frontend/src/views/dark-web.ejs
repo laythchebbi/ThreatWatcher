@@ -1,0 +1,89 @@
+<style>
+.dw-toolbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.dw-toolbar input { flex:1; min-width:280px; }
+.dw-sources { display:flex; gap:6px; }
+.dw-source-chip {
+  font-family:var(--tw-font-mono); font-size:11px; padding:6px 12px; border-radius:99px;
+  border:1px solid var(--tw-line); background:var(--tw-bg-1); color:var(--tw-fg-1); cursor:pointer; user-select:none;
+}
+.dw-source-chip.active { background:var(--tw-accent-soft); color:var(--tw-accent); border-color:var(--tw-accent-line); }
+
+.dw-result { padding:14px 16px; border-bottom:1px solid var(--tw-line); display:grid; grid-template-columns:auto 1fr auto; gap:14px; }
+.dw-result:last-child { border-bottom:0; }
+.dw-source-tag { font-family:var(--tw-font-mono); font-size:10px; padding:2px 8px; border-radius:99px; background:var(--tw-bg-3); color:var(--tw-fg-1); align-self:start; }
+.dw-snippet { color:var(--tw-fg-1); font-size:13px; line-height:1.5; }
+.dw-snippet mark { background:var(--tw-warn-soft); color:var(--tw-fg-0); padding:0 2px; border-radius:2px; }
+.dw-meta { font-family:var(--tw-font-mono); font-size:10px; color:var(--tw-fg-2); text-align:right; }
+</style>
+
+<div class="tw-page-head" style="margin-bottom:18px">
+  <div class="tw-eyebrow">Workspace · Dark web</div>
+  <h1>Leak &amp; mention search</h1>
+  <p class="tw-fg-2" style="margin:6px 0 0">Searches across indexed onion sites, Telegram channels, Twitter dumps, and forum scrapes.</p>
+</div>
+
+<form class="dw-toolbar" id="dwForm" onsubmit="return false">
+  <input class="tw-input tw-mono" id="q" placeholder="Search keyword, credential, brand name…" autocomplete="off" required minlength="2">
+  <div class="dw-sources" id="dwSources">
+    <span class="dw-source-chip active" data-source="all">All</span>
+    <span class="dw-source-chip" data-source="darkweb">Tor</span>
+    <span class="dw-source-chip" data-source="telegram">Telegram</span>
+    <span class="dw-source-chip" data-source="twitter">Twitter</span>
+    <span class="dw-source-chip" data-source="forum">Forums</span>
+  </div>
+  <button class="tw-btn tw-btn-primary" type="submit">Search</button>
+</form>
+
+<div class="tw-panel" id="dwPanel">
+  <div style="padding:36px;text-align:center;color:var(--tw-fg-3)">Enter a query to search the dark-web index.</div>
+</div>
+
+<script>
+let currentSource = "all";
+document.getElementById("dwSources").addEventListener("click", function (e) {
+  var c = e.target.closest(".dw-source-chip");
+  if (!c) return;
+  document.querySelectorAll(".dw-source-chip").forEach(function (n) { n.classList.toggle("active", n === c); });
+  currentSource = c.dataset.source;
+});
+
+function highlight(text, q) {
+  if (!text) return "";
+  var safe = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  var re = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig");
+  return safe.replace(re, "<mark>$1</mark>");
+}
+
+document.getElementById("dwForm").addEventListener("submit", async function () {
+  var q = document.getElementById("q").value.trim();
+  if (q.length < 2) return;
+  var panel = document.getElementById("dwPanel");
+  panel.innerHTML = '<div style="padding:36px;text-align:center;color:var(--tw-fg-3)">Searching…</div>';
+  try {
+    var url = "/api/dataleak?q=" + encodeURIComponent(q) + "&source=" + currentSource;
+    var res = await fetch(url, { credentials: "same-origin" });
+    if (!res.ok) throw new Error("status " + res.status);
+    var data = await res.json();
+    var blocks = [];
+    Object.keys(data.results || {}).forEach(function (src) {
+      (data.results[src] || []).forEach(function (item) {
+        var snippet = item.text || item.body || item.title || "";
+        if (snippet.length > 320) snippet = snippet.slice(0, 320) + "…";
+        var when = item.postedAt || item.crawledAt || item.createdAt;
+        blocks.push(
+          '<div class="dw-result">'
+          + '<span class="dw-source-tag">' + src + '</span>'
+          + '<div class="dw-snippet">' + highlight(snippet, q) + '</div>'
+          + '<div class="dw-meta">' + (when ? new Date(when).toISOString().slice(0, 10) : "—") + '</div>'
+          + '</div>'
+        );
+      });
+    });
+    panel.innerHTML = blocks.length
+      ? blocks.join("")
+      : '<div style="padding:36px;text-align:center;color:var(--tw-fg-3)">No matches for <span class="tw-mono">' + q + '</span>.</div>';
+  } catch (err) {
+    panel.innerHTML = '<div style="padding:36px;text-align:center;color:var(--tw-fg-3)">Search failed.</div>';
+  }
+});
+</script>

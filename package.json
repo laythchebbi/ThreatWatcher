@@ -1,0 +1,46 @@
+{
+  "name": "threat-watcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Threat Watcher — early-phase threat detection platform (workspace root)",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md,css}\"",
+    "test": "npm run -w backend test && npm run -w frontend test",
+    "typecheck": "npm run -w backend typecheck && npm run -w frontend typecheck",
+    "audit": "npm audit --audit-level=high && npm -w backend audit --audit-level=high && npm -w frontend audit --audit-level=high",
+    "prepare": "husky || true"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.17.0",
+    "@types/node": "20.17.10",
+    "eslint": "9.17.0",
+    "eslint-config-prettier": "9.1.0",
+    "husky": "9.1.7",
+    "lint-staged": "15.2.10",
+    "prettier": "3.3.3",
+    "typescript": "5.7.2"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
+  "overrides": {
+    "path-to-regexp": "0.1.13",
+    "qs": "6.15.2",
+    "cookie": "0.7.2",
+    "yaml": "2.9.0",
+    "@eslint/plugin-kit": "^0.3.4"
+  }
+}

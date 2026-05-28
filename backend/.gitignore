@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+ml/models/*.pkl
+ml/models/*.joblib
+__pycache__/
+*.pyc
+venv/
+.venv/
+coverage/
