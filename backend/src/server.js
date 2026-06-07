@@ -5,7 +5,7 @@ const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const { pinoHttp } = require("pino-http");
 
-const { env } = require("./config");
+const { env, isDemo } = require("./config");
 const logger = require("./logger");
 const db = require("./db");
 
@@ -22,8 +22,14 @@ const mlBridge = require("./services/ml-bridge");
 const { httpMetricsMiddleware } = require("./services/metrics");
 
 async function start() {
-  await db.connect();
-  await mlBridge.start();
+  if (isDemo) {
+    logger.warn(
+      "⚠  DEMO MODE: WorkOS auth bypassed, no MongoDB, in-memory data. For local trials only — never production."
+    );
+  } else {
+    await db.connect();
+    await mlBridge.start();
+  }
 
   const app = express();
   app.disable("x-powered-by");
@@ -41,27 +47,33 @@ async function start() {
     })
   );
   app.use(httpMetricsMiddleware);
-
-  app.use("/health", healthRoute);
   app.use("/metrics", metricsRoute);
-  app.use("/auth", authRoute);
-  app.use("/api/domains", domainsRoute);
-  app.use("/api/reports", reportsRoute);
-  app.use("/api/dataleak", dataleakRoute);
-  app.use("/api/users", usersRoute);
+
+  if (isDemo) {
+    app.use(require("./demo/router"));
+  } else {
+    app.use("/health", healthRoute);
+    app.use("/auth", authRoute);
+    app.use("/api/domains", domainsRoute);
+    app.use("/api/reports", reportsRoute);
+    app.use("/api/dataleak", dataleakRoute);
+    app.use("/api/users", usersRoute);
+  }
 
   app.use(errors.notFound);
   app.use(errors.handler);
 
   const server = app.listen(env.PORT, () => {
-    logger.info({ port: env.PORT, env: env.NODE_ENV }, "backend listening");
+    logger.info({ port: env.PORT, env: env.NODE_ENV, demo: isDemo }, "backend listening");
   });
 
   const shutdown = async (signal) => {
     logger.info({ signal }, "shutting down");
     server.close(async () => {
-      await mlBridge.stop().catch(() => {});
-      await db.disconnect().catch(() => {});
+      if (!isDemo) {
+        await mlBridge.stop().catch(() => {});
+        await db.disconnect().catch(() => {});
+      }
       process.exit(0);
     });
     setTimeout(() => process.exit(1), 10_000).unref();

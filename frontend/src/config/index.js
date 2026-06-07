@@ -24,9 +24,25 @@ const schema = z.object({
     .default("false"),
 
   LOG_FILE: z.string().optional(),
+
+  // Dev-only: explore the UI without WorkOS. Never in prod.
+  DEMO_MODE: z
+    .string()
+    .optional()
+    .transform((v) => /^(1|true|yes|on)$/i.test(v || "")),
 });
 
-const parsed = schema.safeParse(process.env);
+// In demo mode, fill placeholders for the otherwise-required WorkOS/session
+// secrets so validation passes. None are used (auth is bypassed in demo).
+const raw = { ...process.env };
+if (/^(1|true|yes|on)$/i.test(raw.DEMO_MODE || "")) {
+  raw.WORKOS_API_KEY ||= "sk_demo_placeholder_unused";
+  raw.WORKOS_CLIENT_ID ||= "client_demo_placeholder";
+  raw.WORKOS_REDIRECT_URI ||= "http://localhost:4000/auth/callback";
+  raw.SESSION_PASSWORD ||= "demo-session-password-unused-0123456789ab";
+}
+
+const parsed = schema.safeParse(raw);
 if (!parsed.success) {
   console.error("Invalid environment configuration:");
   for (const issue of parsed.error.issues) {
@@ -37,8 +53,14 @@ if (!parsed.success) {
 
 const env = parsed.data;
 
+if (env.DEMO_MODE && env.NODE_ENV === "production") {
+  console.error("DEMO_MODE must never be enabled with NODE_ENV=production. Refusing to start.");
+  process.exit(1);
+}
+
 module.exports = {
   env,
   isProd: env.NODE_ENV === "production",
   isDev: env.NODE_ENV === "development",
+  isDemo: env.DEMO_MODE,
 };

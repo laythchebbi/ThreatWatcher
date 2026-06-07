@@ -7,7 +7,7 @@ const compression = require("compression");
 const { pinoHttp } = require("pino-http");
 const expressLayouts = require("express-ejs-layouts");
 
-const { env, isProd } = require("./config");
+const { env, isProd, isDemo } = require("./config");
 const logger = require("./logger");
 const { NAV, ICONS } = require("./nav");
 const {
@@ -63,6 +63,7 @@ app.use("/static", express.static(path.join(__dirname, "public"), { maxAge: isPr
 
 app.locals.nav = NAV;
 app.locals.icons = ICONS;
+app.locals.demoMode = isDemo;
 
 app.use(readSession);
 app.use((req, res, next) => {

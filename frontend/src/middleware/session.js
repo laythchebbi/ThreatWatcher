@@ -1,7 +1,15 @@
 const { getIronSession } = require("iron-session");
-const { env, isProd } = require("../config");
+const { env, isProd, isDemo } = require("../config");
 const logger = require("../logger");
 const workosService = require("../services/workos");
+
+// Fixed mock identity used when DEMO_MODE is on.
+const DEMO_USER = {
+  id: "demo-user",
+  email: "demo@threatwatcher.local",
+  role: "admin",
+  displayName: "Demo Analyst",
+};
 
 /**
  * Best-effort decode of a JWT *without* verification. We use this only to
@@ -44,6 +52,12 @@ async function getSession(req, res) {
  * resolves (never throws); missing/invalid → req.user = null.
  */
 async function readSession(req, res, next) {
+  if (isDemo) {
+    req.user = DEMO_USER;
+    req.token = "demo-token";
+    req.session = null;
+    return next();
+  }
   try {
     const session = await getSession(req, res);
     req.session = session;

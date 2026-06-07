@@ -14,6 +14,11 @@
   <main class="tw-main">
     <%- include('partials/topbar') %>
     <div class="tw-page">
+      <% if (typeof demoMode !== 'undefined' && demoMode) { %>
+        <div style="margin-bottom:14px;padding:8px 14px;border:1px solid var(--tw-warn);background:var(--tw-warn-soft);color:var(--tw-warn);border-radius:var(--tw-radius);font-family:var(--tw-font-mono);font-size:12px">
+          ⚠ DEMO MODE — authentication is bypassed and data is in-memory. For local evaluation only.
+        </div>
+      <% } %>
       <div id="tw-page-content">
         <%- body %>
       </div>

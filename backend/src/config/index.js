@@ -24,9 +24,26 @@ const schema = z.object({
   ML_CONTENT_MODEL: z.string().default("ml/models/content_classifier.pkl"),
 
   LOG_FILE: z.string().optional(),
+
+  // Dev-only: run without WorkOS/MongoDB for a local trial. Never in prod.
+  DEMO_MODE: z
+    .string()
+    .optional()
+    .transform((v) => /^(1|true|yes|on)$/i.test(v || "")),
 });
 
-const parsed = schema.safeParse(process.env);
+// In demo mode, fill placeholder values for the otherwise-required secrets so
+// validation passes. None of these are used for real auth/DB when demo is on.
+const raw = { ...process.env };
+if (/^(1|true|yes|on)$/i.test(raw.DEMO_MODE || "")) {
+  raw.MONGODB_URI ||= "mongodb://demo-disabled:27017/threatwatcher-demo";
+  raw.INTERNAL_API_KEY ||= "demo-internal-key-unused-000000";
+  raw.WORKOS_API_KEY ||= "sk_demo_placeholder_unused";
+  raw.WORKOS_CLIENT_ID ||= "client_demo_placeholder";
+  raw.WORKOS_ORGANIZATION_ID ||= "org_demo_placeholder";
+}
+
+const parsed = schema.safeParse(raw);
 if (!parsed.success) {
   console.error("Invalid environment configuration:");
   for (const issue of parsed.error.issues) {
@@ -37,9 +54,15 @@ if (!parsed.success) {
 
 const env = parsed.data;
 
+if (env.DEMO_MODE && env.NODE_ENV === "production") {
+  console.error("DEMO_MODE must never be enabled with NODE_ENV=production. Refusing to start.");
+  process.exit(1);
+}
+
 module.exports = {
   env,
   isProd: env.NODE_ENV === "production",
   isDev: env.NODE_ENV === "development",
   isTest: env.NODE_ENV === "test",
+  isDemo: env.DEMO_MODE,
 };
