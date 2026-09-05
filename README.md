@@ -125,16 +125,6 @@ Frontend (`:4000`):
 
 - **Dark-web crawler** (`backend/scripts/darkweb_crawl.py`): reads enabled rows from `darkweb_sources`, fetches each via local Tor SOCKS5 (`127.0.0.1:9050`), upserts into `darkweb_pages`. Schedule via cron/Windows Task Scheduler. Tor itself runs as a system service.
 
-## Legacy → MongoDB migration
-
-One-shot ETL at `backend/scripts/migrate_to_mongo.js`. Set any subset of:
-
-- `LEGACY_MSSQL_URI` — pulls `dailyDomains`, `RegistredDomains` into `daily_domains`, `registered_domains`.
-- `LEGACY_MYSQL_URI` — pulls `darkweb_leaks` tables into `darkweb_sources`, `darkweb_pages`.
-- `LEGACY_SQLITE_PATH` — pulls Django `auth_user` into `users`.
-
-Then: `node backend/scripts/migrate_to_mongo.js --dry-run` (review) → drop `--dry-run` to commit. Delete the script after cutover.
-
 ## Repository layout
 
 ```

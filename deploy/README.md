@@ -85,15 +85,6 @@ Tor runs as a system service: `sudo systemctl enable --now tor`. The crawler scr
 
 Use Atlas (managed) or local. If local, enable auth (`security.authorization: enabled` in `/etc/mongod.conf`) and create a dedicated user for `threatwatcher`. Update `MONGODB_URI` in `backend/.env`.
 
-## Migration cutover
-
-```bash
-sudo -u threatwatcher node /opt/threat-watcher/backend/scripts/migrate_to_mongo.js --dry-run
-# review output
-sudo -u threatwatcher node /opt/threat-watcher/backend/scripts/migrate_to_mongo.js
-# verify counts, then delete the script
-```
-
 ## WorkOS in production
 
 Before flipping DNS:
