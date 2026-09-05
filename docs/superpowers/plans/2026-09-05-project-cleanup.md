@@ -25,6 +25,7 @@
 ### Task 1: Clean reinstall on macOS and patch all audited dependencies
 
 **Files:**
+
 - Modify: `package.json` (root, `overrides.qs`)
 - Modify: `backend/package.json` (dependencies)
 - Modify: `frontend/package.json` (dependencies)
@@ -32,15 +33,18 @@
 - Delete (untracked): `node_modules/`, `package-lock.json` (regenerated), `.claude/settings.local.json`, every `.DS_Store`
 
 **Interfaces:**
+
 - Consumes: nothing from earlier tasks.
 - Produces: a working macOS `node_modules`, a fresh `package-lock.json`, a functioning husky pre-commit hook. Every later task's `git commit` relies on this.
 
 - [ ] **Step 1: Record the failing state**
 
 Run:
+
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && npm audit --audit-level=high >/dev/null 2>&1; echo "audit exit=$?"; ls node_modules/.bin | grep -c '\.cmd$'
 ```
+
 Expected: `audit exit=1` and a shim count of `34` (Windows copy).
 
 - [ ] **Step 2: Edit backend/package.json dependencies**
@@ -93,25 +97,31 @@ with
 - [ ] **Step 6: Remove the Windows leftovers and reinstall**
 
 Run:
+
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && rm -rf node_modules package-lock.json .claude/settings.local.json && rmdir .claude 2>/dev/null; find . -name .DS_Store -not -path './.git/*' -delete; find .git -name .DS_Store -delete; npm install 2>&1 | tail -5
 ```
+
 Expected: `npm install` finishes with `found 0 vulnerabilities`. If it reports any vulnerability, run `npm audit` and read which package: a transitive one (undici, js-yaml, brace-expansion, form-data) means a newer in-range release is needed and `npm audit fix` (without `--force`) resolves it; a direct one means a pin above is wrong. Never use `--force`.
 
 - [ ] **Step 7: Verify the install is native and consistent**
 
 Run:
+
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && ls node_modules/.bin | grep -c '\.cmd$'; npm ls --depth=0 2>&1 | grep -c extraneous; ls -la node_modules/threat-watcher-backend node_modules/threat-watcher-frontend | grep -c '^l'; npm ls axios express-rate-limit 2>&1 | head -6; ls .husky/_/husky.sh
 ```
+
 Expected: `0` shims, `0` extraneous, `2` symlinks (the workspace links are symlinks again), `axios` appears only under `threat-watcher-frontend`, `express-rate-limit` is `(empty)`, and `.husky/_/husky.sh` exists.
 
 - [ ] **Step 8: Run all four gates**
 
 Run:
+
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && npm run lint && npm run typecheck && npm test 2>&1 | grep -E '^ℹ (tests|pass|fail)' && npm audit
 ```
+
 Expected: lint and typecheck print nothing but the script banners; tests print `tests 24`/`pass 24`/`fail 0` then `tests 7`/`pass 7`/`fail 0`; audit prints `found 0 vulnerabilities`.
 
 - [ ] **Step 9: Commit**
@@ -126,6 +136,7 @@ cd "/Users/layth/Documents/Threat Watcher" && git add package.json package-lock.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
+
 Expected: the husky hook runs `lint-staged` and the commit succeeds. `git status --short` is empty afterwards.
 
 ---
@@ -133,21 +144,25 @@ Expected: the husky hook runs `lint-staged` and the commit succeeds. `git status
 ### Task 2: Archive the legacy v1 folder and delete it
 
 **Files:**
+
 - Create (inside the legacy tree, before archiving): `ThreatWatcher/LEGACY-README.md`
 - Create (outside repo): `~/Documents/threat-watcher-legacy-v1.tar.gz`, `~/Documents/threat-watcher-legacy-v1.tar.gz.sha256`
 - Delete: `ThreatWatcher/` (git-ignored; nothing tracked changes)
 - Modify: `.gitignore:1-4` and the `domain.zip` line, `pyproject.toml` (two exclusions), `README.md:150`, `SECURITY.md:34`
 
 **Interfaces:**
+
 - Consumes: working husky hook from Task 1.
 - Produces: the archive path used verbatim in Task 4's CLAUDE.md status.
 
 - [ ] **Step 1: Confirm the folder is still git-ignored and untracked**
 
 Run:
+
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && git check-ignore -v ThreatWatcher && git ls-files ThreatWatcher | wc -l
 ```
+
 Expected: `.gitignore:4:ThreatWatcher/	ThreatWatcher` and `0`.
 
 - [ ] **Step 2: Write the archive README into the legacy tree**
@@ -183,6 +198,7 @@ The embedded `.git/` directories also hold those secrets in their history.
 EOF
 ls -la ThreatWatcher/LEGACY-README.md
 ```
+
 Expected: the file exists (about 1.5 KB).
 
 - [ ] **Step 3: Build the include list and the archive**
@@ -200,6 +216,7 @@ cd "/Users/layth/Documents/Threat Watcher" && find ThreatWatcher -type f \
 && tar --null -T "$SCRATCH/legacy-files.list" -czf "$HOME/Documents/threat-watcher-legacy-v1.tar.gz" \
 && ls -lh "$HOME/Documents/threat-watcher-legacy-v1.tar.gz"
 ```
+
 Expected: a file count in the low thousands (BackEnd 46 + DarkWeb 41 + DataLeak ~4605 + DataLeaks 35 + FrontEnd ~1474 + URLML 42 + WebContentML 51 + README ≈ 6300) and an archive well under 300 MB.
 
 - [ ] **Step 4: Verify the archive before deleting anything**
@@ -214,6 +231,7 @@ gzip -t "$A" && echo "gzip ok" \
 mkdir -p "$SCRATCH/extract-test" && tar -xzf "$A" -C "$SCRATCH/extract-test" ThreatWatcher/LEGACY-README.md && head -3 "$SCRATCH/extract-test/ThreatWatcher/LEGACY-README.md" \
 && (cd "$HOME/Documents" && shasum -a 256 threat-watcher-legacy-v1.tar.gz > threat-watcher-legacy-v1.tar.gz.sha256 && cat threat-watcher-legacy-v1.tar.gz.sha256)
 ```
+
 Expected: `gzip ok`; entry count equals list count; all seven "must be present" paths listed; the "must be 0" count is `0` (grep prints `0` and exits 1, which is why that line ends with `;`); the extracted README's first line is the `# Threat Watcher — legacy v1 snapshot` heading; a checksum line is printed. **If any expectation fails, stop. Do not proceed to Step 5.**
 
 - [ ] **Step 5: Delete the legacy folder**
@@ -221,6 +239,7 @@ Expected: `gzip ok`; entry count equals list count; all seven "must be present" 
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && rm -rf ThreatWatcher && ls -d ThreatWatcher 2>&1; git status --short
 ```
+
 Expected: `ls: ThreatWatcher: No such file or directory` and an empty `git status`.
 
 - [ ] **Step 6: Remove the legacy exclusions from .gitignore and pyproject.toml**
@@ -236,7 +255,9 @@ In `pyproject.toml`, under `[tool.ruff] extend-exclude`, delete the `"ThreatWatc
   | \.venv
 )/
 ```
+
 to
+
 ```
 /(
   venv
@@ -251,7 +272,9 @@ In `README.md`, replace the paragraph
 ```
 The `ThreatWatcher/` directory is the **legacy v1 codebase** from 2022. It is preserved as a reference during the modernization and will be deleted once feature parity is reached. Do not add new code there.
 ```
+
 with
+
 ```
 The legacy 2022 v1 codebase (formerly the git-ignored `ThreatWatcher/` directory) was archived on 2026-09-05 to `~/Documents/threat-watcher-legacy-v1.tar.gz` and removed from the working tree. The archive is local-only: it contains the credentials catalogued in `SECURITY.md`. It also holds the labeled URL dataset and v1 `.pkl` models needed for the M4 retrain.
 ```
@@ -261,7 +284,9 @@ In `SECURITY.md`, replace
 ```
 (The legacy `ThreatWatcher/` tree can be preserved as a snapshot or deleted once the modernization replaces it.)
 ```
+
 with
+
 ```
 (The legacy `ThreatWatcher/` tree was archived to `~/Documents/threat-watcher-legacy-v1.tar.gz` on 2026-09-05 and removed from the working tree. The archive is local-only and still contains every secret listed above.)
 ```
@@ -271,6 +296,7 @@ with
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && (command -v ruff >/dev/null && ruff check backend/ml backend/scripts || echo "ruff not installed locally; CI covers it") && npm run lint && npm run typecheck && npm test 2>&1 | grep -E '^ℹ (pass|fail)'
 ```
+
 Expected: ruff reports no issues (or the "not installed" note); pass 24 / fail 0 and pass 7 / fail 0.
 
 - [ ] **Step 9: Commit**
@@ -290,11 +316,13 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 3: Remove the dead migration script
 
 **Files:**
+
 - Delete: `backend/scripts/migrate_to_mongo.js`
 - Modify: `README.md` (delete the "Legacy → MongoDB migration" section, lines 128-136)
 - Modify: `deploy/README.md` (delete the "Migration cutover" section, lines 88-96)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: nothing other tasks rely on.
 
@@ -303,6 +331,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && grep -nE 'require\("(mssql|mysql2?|sqlite3?)"\)' backend/scripts/migrate_to_mongo.js; grep -cE '"(mssql|mysql2?|sqlite3?)"' backend/package.json
 ```
+
 Expected: the script requires `mssql` (and others); `backend/package.json` count is `0`.
 
 - [ ] **Step 2: Delete the script**
@@ -310,6 +339,7 @@ Expected: the script requires `mssql` (and others); `backend/package.json` count
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && git rm -q backend/scripts/migrate_to_mongo.js && ls backend/scripts
 ```
+
 Expected: only `darkweb_crawl.py` remains.
 
 - [ ] **Step 3: Remove the README section**
@@ -332,7 +362,7 @@ Then: `node backend/scripts/migrate_to_mongo.js --dry-run` (review) → drop `--
 
 In `deploy/README.md`, delete this block (heading through the closing fence, plus the blank line after it):
 
-```
+````
 ## Migration cutover
 
 ```bash
@@ -341,13 +371,14 @@ sudo -u threatwatcher node /opt/threat-watcher/backend/scripts/migrate_to_mongo.
 sudo -u threatwatcher node /opt/threat-watcher/backend/scripts/migrate_to_mongo.js
 # verify counts, then delete the script
 ```
-```
+````
 
 - [ ] **Step 5: Verify no reference survives**
 
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && grep -rn "migrate_to_mongo\|LEGACY_MSSQL\|LEGACY_MYSQL\|LEGACY_SQLITE" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=docs . ; echo "grep exit=$?"
 ```
+
 Expected: no matches, `grep exit=1`.
 
 - [ ] **Step 6: Commit**
@@ -366,12 +397,14 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ### Task 4: Make the docs match the code
 
 **Files:**
+
 - Modify: `README.md` (Endpoints section lines 103-123; UI routes row for `/geolocation`; two "Windows Task Scheduler" mentions at lines 32 and 126)
 - Modify: `frontend/README.md` (line 13 and the `views/` block of the layout tree)
 - Modify: `CLAUDE.md` (Architecture bullet for `ThreatWatcher/`, Status section, one new Gotcha)
 - Modify: `docs/superpowers/specs/2026-09-05-project-cleanup-design.md` (one factual correction)
 
 **Interfaces:**
+
 - Consumes: archive path from Task 2.
 - Produces: nothing other tasks rely on.
 
@@ -380,6 +413,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && grep -nE '/auth/(register|login)|redirects to `/geolocation`|Windows Task Scheduler|Git initialized' README.md frontend/README.md CLAUDE.md
 ```
+
 Expected: five matches (README 108, 109, 32, 126; frontend/README 13; CLAUDE.md status line).
 
 - [ ] **Step 2: Rewrite the README Endpoints section**
@@ -418,12 +452,14 @@ In the UI routes table replace
 ```
 | `/geolocation`            | geo activity surface (M1 design landing)                       |
 ```
+
 with
+
 ```
 | `/geolocation`            | geo activity surface — static design mockup, no data behind it |
 ```
 
-Replace `scheduled via cron / Windows Task Scheduler` (line 32) with `scheduled via cron or the systemd timer in `deploy/systemd/``, and `Schedule via cron/Windows Task Scheduler.` (line 126) with `Schedule via cron or `deploy/systemd/threat-watcher-crawl.timer`.`
+Replace `scheduled via cron / Windows Task Scheduler` (line 32) with `scheduled via cron or the systemd timer in `deploy/systemd/``, and `Schedule via cron/Windows Task Scheduler.`(line 126) with`Schedule via cron or `deploy/systemd/threat-watcher-crawl.timer`.`
 
 - [ ] **Step 4: Fix frontend/README.md**
 
@@ -432,7 +468,9 @@ Replace the line
 ```
 `/` redirects to `/geolocation`. The `Geo activity` page renders a procedural world map, live event feed, top countries, ASN table, targeted assets, and a 24h trend chart.
 ```
+
 with
+
 ```
 `/` redirects to `/dashboard`. The `Geo activity` page (`/geolocation`) is a static design mockup: procedural world map, event feed, top countries, ASN table, targeted assets and a 24h trend, all hardcoded, with no backend call behind it yet.
 ```
@@ -446,7 +484,9 @@ Replace the `views/` block of the layout tree
                          are auto-extracted into the layout's <head> / pre-</body>.
     partials/
 ```
+
 with
+
 ```
   views/
     layout.ejs           Shared shell: <head>, sidebar partial, topbar partial, body slot.
@@ -472,7 +512,9 @@ Replace the Architecture bullet
 - **`ThreatWatcher/`** — legacy v1. **git-ignored** (contains the leaked creds
   catalogued in `SECURITY.md`). Reference only; never add code there.
 ```
+
 with
+
 ```
 - **Legacy v1** — archived 2026-09-05 to `~/Documents/threat-watcher-legacy-v1.tar.gz`
   (local-only; contains the leaked creds catalogued in `SECURITY.md`, plus the
@@ -512,7 +554,9 @@ In `docs/superpowers/specs/2026-09-05-project-cleanup-design.md`, section 5, cha
 ```
   `/auth/register`, `/auth/login`, or `/api/domains/registered`; add the
 ```
+
 to
+
 ```
   `/auth/register` or `/auth/login`; `/api/domains/registered/:domain` does exist); add the
 ```
@@ -522,6 +566,7 @@ to
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && grep -nE '/auth/(register|login)|redirects to `/geolocation`|Windows Task Scheduler|Git initialized|express-rate-limit. is retained' README.md frontend/README.md CLAUDE.md SECURITY.md; echo "grep exit=$?"; npx prettier --check README.md frontend/README.md CLAUDE.md SECURITY.md deploy/README.md docs/superpowers/specs/*.md docs/superpowers/plans/*.md
 ```
+
 Expected: `grep exit=1` (no matches). If prettier lists files, run `npx prettier --write` on exactly those files and re-check.
 
 - [ ] **Step 8: Commit**
@@ -539,6 +584,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Files:** none modified unless prettier or `npm ci` reveals a problem.
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: the green-gates evidence for the final report.
 
@@ -547,6 +593,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && npm ci 2>&1 | tail -3 && npm audit --audit-level=high && echo "audit-high exit=$?"
 ```
+
 Expected: `npm ci` succeeds (lockfile and package.json in sync), `found 0 vulnerabilities`, `audit-high exit=0`.
 
 - [ ] **Step 2: All four gates plus format check**
@@ -554,6 +601,7 @@ Expected: `npm ci` succeeds (lockfile and package.json in sync), `found 0 vulner
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && npm run lint && npm run typecheck && npm test 2>&1 | grep -E '^ℹ (tests|pass|fail)' && npm audit && npm run format:check 2>&1 | tail -3
 ```
+
 Expected: pass 24 / fail 0, pass 7 / fail 0, `found 0 vulnerabilities`, `All matched files use Prettier code style!`. If format:check lists files, run `npm run format`, inspect `git diff --stat`, and commit as `style: prettier` with the trailer.
 
 - [ ] **Step 3: Boot the demo and probe it**
@@ -562,6 +610,7 @@ Expected: pass 24 / fail 0, pass 7 / fail 0, `found 0 vulnerabilities`, `All mat
 export SCRATCH=/private/tmp/claude-501/-Users-layth-Documents-Threat-Watcher/c7ec59ed-bae3-4342-8091-1664bc667881/scratchpad
 cd "/Users/layth/Documents/Threat Watcher" && (cd backend && node src/server.js > "$SCRATCH/be.log" 2>&1 & echo $! > "$SCRATCH/be.pid") && (cd frontend && node src/server.js > "$SCRATCH/fe.log" 2>&1 & echo $! > "$SCRATCH/fe.pid") && for i in $(seq 1 30); do curl -sf http://localhost:3000/health >/dev/null && curl -sf -o /dev/null http://localhost:4000/dashboard && break; node -e "setTimeout(()=>process.exit(0),500)"; done; curl -s http://localhost:3000/health; echo; curl -s -o /dev/null -w "root: %{http_code} -> %{redirect_url}\n" http://localhost:4000/; curl -s http://localhost:4000/dashboard | grep -c "DEMO MODE"; curl -s -o /dev/null -w "geo: %{http_code}\n" http://localhost:4000/geolocation; kill $(cat "$SCRATCH/be.pid") $(cat "$SCRATCH/fe.pid"); grep -ciE "error|unhandled" "$SCRATCH/be.log" "$SCRATCH/fe.log"
 ```
+
 Expected: `{"ok":true,"demo":true,"mongo":false,"ml":{"url":false,"content":false}}`, `root: 302 -> http://localhost:4000/dashboard`, `1` (banner present), `geo: 200`, and `0` error lines in both logs.
 
 - [ ] **Step 4: Final repo state**
@@ -569,4 +618,5 @@ Expected: `{"ok":true,"demo":true,"mongo":false,"ml":{"url":false,"content":fals
 ```bash
 cd "/Users/layth/Documents/Threat Watcher" && git status --short && git log --oneline -8 && du -sh . node_modules && ls
 ```
+
 Expected: empty status; five new commits on top of `bd72353 docs: cleanup design spec`; no `ThreatWatcher` in the listing.

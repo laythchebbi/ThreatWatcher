@@ -29,7 +29,7 @@ Early-phase threat detection platform. Modernized from a 2022 multi-component co
 - **`backend/`** — Express API + ML helpers + scheduled crawler scripts (one process on `:3000`).
 - **MongoDB** — single database (`threatwatcher`). Replaces the legacy MSSQL + MySQL + SQLite triple.
 - **`ml/`** — small Python scripts (URL classifier, content classifier) called from the backend via `child_process`. CLI protocol: JSON-per-line on stdin/stdout.
-- **`scripts/`** — standalone Python jobs (dark-web crawler) scheduled via cron / Windows Task Scheduler. Tor itself is a system service, not managed by the app.
+- **`scripts/`** — standalone Python jobs (dark-web crawler) scheduled via cron or the systemd timer in `deploy/systemd/`. Tor itself is a system service, not managed by the app.
 
 ## Run locally
 
@@ -100,30 +100,31 @@ pip-audit -r backend/ml/requirements.txt
 
 Pre-commit hook (husky) runs eslint+prettier on staged files automatically.
 
-## Endpoints (M1)
+## Endpoints
 
-Backend (`:3000`):
+Backend (`:3000`). Every `/auth/*` and `/api/*` route requires a WorkOS access token (`requireUser`); routes marked _admin_ also require the `admin` role.
 
-- `GET  /health`
-- `POST /auth/register` `{email,password,displayName}`
-- `POST /auth/login` `{email,password}` → `{user, token}` (rate-limited)
-- `GET  /auth/me` (auth required)
-- `GET  /api/domains/search/:domain` (auth required)
-- `POST /api/domains/scan/:domain` (auth required, writes a `Report`)
-- `GET  /api/domains/daily/:domain`
-- `GET  /api/domains/registered/:domain`
-- `GET  /api/reports?limit=50`
-- `GET  /api/reports/:id`
+- `GET  /health`, `GET /metrics`
+- `GET  /auth/me`
+- `GET  /auth/invitations`, `POST /auth/invitations` `{email, role, expiresInDays}`, `DELETE /auth/invitations/:id` — _admin_
+- `GET  /api/users/me`, `PATCH /api/users/me`, `PUT /api/users/me/monitored`
+- `GET  /api/users`, `PATCH /api/users/:id/role`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate` — _admin_
+- `GET  /api/domains/search/:domain`
+- `POST /api/domains/scan/:domain` (writes a `Report`)
+- `GET  /api/domains/daily/:domain`, `GET /api/domains/registered/:domain`
+- `GET  /api/reports?limit=50`, `GET /api/reports/:id`
 - `GET  /api/dataleak/search?q=...&source=telegram|twitter|forum|darkweb|all`
 
-Frontend (`:4000`):
+Frontend (`:4000`). Pages are server-rendered (see "UI routes" below). Browser-side code talks to a same-origin `/api/*` proxy that attaches the access token server-side and refreshes it on 401:
 
-- `GET  /login`, `POST /login`, `POST /logout`
-- `GET  /geolocation` (the modernized dashboard surface; more screens land in M5)
+- `GET  /api/reports`, `GET /api/reports/:id`, `GET /api/dataleak`
+- `GET  /api/me`, `PATCH /api/me`, `PUT /api/me/monitored`
+- `GET  /api/admin/users`, `PATCH /api/admin/users/:id/role`, `POST /api/admin/users/:id/deactivate` — _admin_
+- `GET  /api/admin/invitations`, `POST /api/admin/invitations`, `DELETE /api/admin/invitations/:id` — _admin_
 
 ## Scheduled jobs
 
-- **Dark-web crawler** (`backend/scripts/darkweb_crawl.py`): reads enabled rows from `darkweb_sources`, fetches each via local Tor SOCKS5 (`127.0.0.1:9050`), upserts into `darkweb_pages`. Schedule via cron/Windows Task Scheduler. Tor itself runs as a system service.
+- **Dark-web crawler** (`backend/scripts/darkweb_crawl.py`): reads enabled rows from `darkweb_sources`, fetches each via local Tor SOCKS5 (`127.0.0.1:9050`), upserts into `darkweb_pages`. Schedule via cron or `deploy/systemd/threat-watcher-crawl.timer`. Tor itself runs as a system service.
 
 ## Repository layout
 
@@ -174,7 +175,7 @@ See `C:\Users\layth\.claude\plans\i-have-this-old-robust-nebula.md` for the orig
 | `/scan/:id`               | scan report with SecureScore gauge and findings tabs           |
 | `/reports`                | searchable history                                             |
 | `/dark-web`               | leak/mention search (Telegram/Twitter/forum/onion)             |
-| `/geolocation`            | geo activity surface (M1 design landing)                       |
+| `/geolocation`            | geo activity surface — static design mockup, no data behind it |
 | `/settings`               | profile, monitored domains, integrations                       |
 | `/design-system`          | palette, typography, components reference                      |
 | `/metrics`                | Prometheus scrape (gated by nginx in prod)                     |

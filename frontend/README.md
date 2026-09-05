@@ -10,7 +10,7 @@ npm install
 npm start                  # → http://localhost:4000
 ```
 
-`/` redirects to `/geolocation`. The `Geo activity` page renders a procedural world map, live event feed, top countries, ASN table, targeted assets, and a 24h trend chart.
+`/` redirects to `/dashboard`. The `Geo activity` page (`/geolocation`) is a static design mockup: procedural world map, event feed, top countries, ASN table, targeted assets and a 24h trend, all hardcoded, with no backend call behind it yet.
 
 ## Layout
 
@@ -20,7 +20,16 @@ src/
   nav.js                 Sidebar nav data + icon SVG library (server-side).
   views/
     layout.ejs           Shared shell: <head>, sidebar partial, topbar partial, body slot.
-    geolocation.ejs      Page body for /geolocation. Inline <style> + <script> blocks
+    dashboard.ejs        /dashboard — monitored domains, recent scans, counters
+    new-scan.ejs         /new-scan
+    scan-report.ejs      /scan/:id
+    reports.ejs          /reports
+    dark-web.ejs         /dark-web
+    settings.ejs         /settings
+    geolocation.ejs      /geolocation — static mockup (see above)
+    design-system.ejs    /design-system — tokens and components reference
+    login.ejs, error.ejs
+                         Page bodies may carry inline <style> + <script> blocks; they
                          are auto-extracted into the layout's <head> / pre-</body>.
     partials/
       sidebar.ejs        Iterates nav.js array; highlights active item.

@@ -43,14 +43,14 @@ Reinstall with `npm install` on this Mac. `.husky/_/` regenerates.
 
 ## 3. Dependencies: zero audit findings
 
-| Package                          | Action                                             |
-| -------------------------------- | -------------------------------------------------- |
-| backend `axios`                  | remove (not imported; backend uses native `fetch`) |
-| backend `express-rate-limit`     | remove (not imported anywhere)                     |
-| frontend `axios`                 | bump to the patched 1.x                            |
-| `express` (both apps)            | bump to the patched 4.x                            |
-| `mongoose`                       | bump to the patched 8.x                            |
-| root override `qs`               | raise above 6.15.3                                 |
+| Package                                | Action                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------- |
+| backend `axios`                        | remove (not imported; backend uses native `fetch`)                                    |
+| backend `express-rate-limit`           | remove (not imported anywhere)                                                        |
+| frontend `axios`                       | bump to the patched 1.x                                                               |
+| `express` (both apps)                  | bump to the patched 4.x                                                               |
+| `mongoose`                             | bump to the patched 8.x                                                               |
+| root override `qs`                     | raise above 6.15.3                                                                    |
 | `undici`, `js-yaml`, `brace-expansion` | transitive (cheerio, eslint, ejs); fix via `npm audit fix` or a direct bump if needed |
 
 Edit `package.json` files first, then clean install (overrides only apply on a
@@ -70,7 +70,7 @@ clean install). Acceptance: `npm audit` reports 0 vulnerabilities and CI's
 ## 5. Docs made truthful
 
 - `README.md`: rewrite "Endpoints" from the real routes (no
-  `/auth/register`, `/auth/login`, or `/api/domains/registered`; add the
+  `/auth/register` or `/auth/login`; `/api/domains/registered/:domain` does exist); add the
   `/api/users/*` and `/auth/invitations` routes); drop the "Legacy → MongoDB
   migration" section; mark `/geolocation` as a static mockup.
 - `frontend/README.md`: `/` redirects to `/dashboard`, not `/geolocation`;

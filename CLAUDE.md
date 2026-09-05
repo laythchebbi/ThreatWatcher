@@ -14,8 +14,9 @@ into a two-app npm **workspaces** monorepo. Quality/reliability is the priority.
   sealed `iron-session` cookies. **Dashboard + reports are server-rendered**
   (no client-fetch flash). Calls backend via an `/api/*` proxy that attaches the
   access token server-side and refreshes on 401.
-- **`ThreatWatcher/`** — legacy v1. **git-ignored** (contains the leaked creds
-  catalogued in `SECURITY.md`). Reference only; never add code there.
+- **Legacy v1** — archived 2026-09-05 to `~/Documents/threat-watcher-legacy-v1.tar.gz`
+  (local-only; contains the leaked creds catalogued in `SECURITY.md`, plus the
+  labeled URL dataset and v1 `.pkl` models for M4). No longer in the tree.
 
 Auth model: admin-invite-only, single WorkOS org, roles `analyst`/`admin`,
 opt-in TOTP. Local `users` collection is upserted from WorkOS on each sign-in
@@ -78,11 +79,20 @@ amber DEMO banner). Live scans still use the real `domain-similarity` engine.
   but unlisted; `revokeInvitation` was called with an object not a string;
   mongoose 8.8.4 had a critical search-injection CVE (now 8.24.0). Lesson: run
   lint/typecheck/test/audit before declaring anything done.
+- **A `node_modules` copied from another OS is not an install.** Symptoms:
+  `.cmd`/`.ps1` shims in `.bin`, `npm ls` says everything is "extraneous",
+  workspace links are empty dirs. Always `rm -rf node_modules package-lock.json
+&& npm install` after moving the checkout.
 
 ## Status
 
-M1–M7 + WorkOS auth complete. Git initialized (`main`), one commit. CI
-(`.github/workflows/ci.yml`) ready, runs on push. Not yet booted against live
-MongoDB/WorkOS — that's the only end-to-end gap. Next candidates: push to a
-remote; M4 ML retrain (legacy scikit-learn 0.22.1 pin won't install on modern
-Python — `train_url_classifier.py` + `export_onnx.py` are the forward path).
+M1–M7 + WorkOS auth complete. Repo moved from Windows to macOS on 2026-09-05
+and cleaned (spec: `docs/superpowers/specs/2026-09-05-project-cleanup-design.md`):
+legacy v1 archived off-repo, deps patched to 0 audit findings, dead migration
+script removed, docs re-synced with the real routes. CI
+(`.github/workflows/ci.yml`) runs on push; **no git remote yet**. Not yet
+booted against live MongoDB/WorkOS — that's the only end-to-end gap.
+
+Next candidates: push to a remote; M4 ML retrain (`train_url_classifier.py` +
+`export_onnx.py`, data in the archive); decide on the pending majors
+(express 5, mongoose 9, `@workos-inc/node` 10) before building new features.
