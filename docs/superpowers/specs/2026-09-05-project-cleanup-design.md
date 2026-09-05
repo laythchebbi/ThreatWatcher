@@ -70,7 +70,7 @@ clean install). Acceptance: `npm audit` reports 0 vulnerabilities and CI's
 ## 5. Docs made truthful
 
 - `README.md`: rewrite "Endpoints" from the real routes (no
-  `/auth/register` or `/auth/login`; `/api/domains/registered/:domain` does exist); add the
+  `/auth/register` or `/auth/login`; `/api/domains/registered/:domain` does exist; add the
   `/api/users/*` and `/auth/invitations` routes); drop the "Legacy → MongoDB
   migration" section; mark `/geolocation` as a static mockup.
 - `frontend/README.md`: `/` redirects to `/dashboard`, not `/geolocation`;
