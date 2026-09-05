@@ -63,6 +63,16 @@ The simplest, safest path:
 
 The repo root `.gitignore` excludes `.env` and `.env.local`. Each app (`backend/`, `frontend/`) ships a `.env.example` with the _names_ of required variables but no values.
 
+## Legacy v1 archive (local-only)
+
+The 2022 v1 tree was archived on 2026-09-05 to
+`~/Documents/threat-watcher-legacy-v1.tar.gz` (sha256 file beside it). It still
+contains every secret in rows 1–5 above plus two Telethon `.session` files.
+Keep it on local disk only: never commit, upload, or sync it, and do not enable
+iCloud "Desktop & Documents" sync on this Mac while it lives in `~/Documents`.
+Delete the archive once rows 1–5 are rotated and the M4 retrain has extracted
+`dataNN.csv` and the v1 `.pkl` models it needs.
+
 ## Pre-commit + CI protection (added in M1)
 
 - `husky` runs `lint-staged` on every commit (eslint + prettier on staged files).

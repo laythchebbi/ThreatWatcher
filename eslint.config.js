@@ -5,7 +5,6 @@ module.exports = [
   {
     ignores: [
       "**/node_modules/**",
-      "ThreatWatcher/**",
       "**/dist/**",
       "**/coverage/**",
       "**/*.min.js",

@@ -158,8 +158,6 @@ All seven modernization milestones have landed in this repo:
 | M6  | Observability              | `services/metrics.js`, `/metrics`, request-ID middleware, optional `LOG_FILE` transport           |
 | M7  | Production deploy          | `deploy/` — PM2 ecosystem, nginx, systemd units, `deploy/README.md`                               |
 
-See `C:\Users\layth\.claude\plans\i-have-this-old-robust-nebula.md` for the original plan.
-
 ## UI routes
 
 | Route                     | Purpose                                                        |
