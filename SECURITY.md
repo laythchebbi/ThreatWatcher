@@ -78,7 +78,7 @@ What the modernization addresses:
 - **Identity & access** → delegated to **WorkOS User Management** (AuthKit). Backend never sees passwords; it validates WorkOS-issued access tokens via the project JWKS (RS256). Frontend stores access + refresh tokens in a sealed, httpOnly, SameSite=Lax cookie (`iron-session`, AES-GCM). Admins invite users; public sign-up is disabled in the WorkOS dashboard.
 - **Two-factor auth** → opt-in TOTP enrollment in the WorkOS AuthKit hosted flow. Settings → "Manage 2FA & sessions" links users to the WorkOS portal.
 - **Session revocation** → access tokens are short-lived; refresh-token rotation happens server-side in the frontend's `/api/*` proxy. Sign-out destroys the sealed cookie. Admins can deactivate a user (`POST /api/users/:id/deactivate`) which causes the `requireUser` middleware to return 403 even with a valid token.
-- **Brute-force resistance** → password attempts are rate-limited by WorkOS at the IdP. Our own `express-rate-limit` is retained for non-auth endpoints.
+- **Brute-force resistance** → password attempts are rate-limited by WorkOS at the IdP. The app has no rate limiting of its own yet; add `express-rate-limit` when a public-facing endpoint exists.
 - **OAuth (Google, Microsoft)** → handled by AuthKit; we never receive the IdP's tokens directly.
 - **Open CORS** → restricted to `FRONTEND_ORIGIN`.
 - **Bare catches that hide failures** → replaced by `pino` structured logging at warn/error.
