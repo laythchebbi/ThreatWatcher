@@ -147,7 +147,7 @@ Then: `node backend/scripts/migrate_to_mongo.js --dry-run` (review) → drop `--
 └── frontend/                     Node.js + EJS user-facing app
 ```
 
-The `ThreatWatcher/` directory is the **legacy v1 codebase** from 2022. It is preserved as a reference during the modernization and will be deleted once feature parity is reached. Do not add new code there.
+The legacy 2022 v1 codebase (formerly the git-ignored `ThreatWatcher/` directory) was archived on 2026-09-05 to `~/Documents/threat-watcher-legacy-v1.tar.gz` and removed from the working tree. The archive is local-only: it contains the credentials catalogued in `SECURITY.md`. It also holds the labeled URL dataset and v1 `.pkl` models needed for the M4 retrain.
 
 ## Security
 

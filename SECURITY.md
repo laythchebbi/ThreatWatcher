@@ -31,7 +31,7 @@ The simplest, safest path:
    rm -rf "ThreatWatcher/DataLeaks/.git"
    ```
 
-   Then init a single new repo at the project root. (The legacy `ThreatWatcher/` tree can be preserved as a snapshot or deleted once the modernization replaces it.)
+   Then init a single new repo at the project root. (The legacy `ThreatWatcher/` tree was archived to `~/Documents/threat-watcher-legacy-v1.tar.gz` on 2026-09-05 and removed from the working tree. The archive is local-only and still contains every secret listed above.)
 
 2. **If the old repos were pushed to a remote** (GitHub, GitLab, etc.), you must:
 
