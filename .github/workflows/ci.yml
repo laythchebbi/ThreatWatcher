@@ -38,8 +38,8 @@ jobs:
         run: pip install ruff==0.6.9 black==24.10.0 pip-audit==2.7.3
       - name: lint
         run: |
-          ruff check backend/ml backend/scripts
-          black --check backend/ml backend/scripts
+          ruff check backend/ml backend/scripts app/ml
+          black --check backend/ml backend/scripts app/ml
       # The legacy scikit-learn==0.22.1 pin has no wheels on modern Python
       # (tracked for the M4 ML refresh). Keep dependency audit advisory so it
       # never blocks CI; the ruff/black lint above is the enforced gate.

@@ -1,5 +1,10 @@
 # Threat Watcher
 
+> **v2 is being built in [`app/`](app/README.md)**: one process, built-in
+> sign-in, a scheduled watch that turns lookalike-domain changes into events.
+> The `backend/` + `frontend/` apps below are the v1 shape and are deleted once
+> `app/` reaches Plan 3. See `docs/superpowers/specs/2026-10-30-threat-watcher-v2-design.md`.
+
 Early-phase threat detection platform. Modernized from a 2022 multi-component codebase into two stable apps.
 
 ## Architecture

@@ -23,13 +23,23 @@ Auth model: admin-invite-only, single WorkOS org, roles `analyst`/`admin`,
 opt-in TOTP. Local `users` collection is upserted from WorkOS on each sign-in
 and holds app-specific fields (`monitoredDomains`, `role`, `deactivatedAt`).
 
+## v2 in `app/` (2026-10-31, branch `v2-core`)
+
+The rewrite lives in a third workspace, `app/`: one Express process, built-in
+sign-in (scrypt + versioned sealed sessions), MongoDB only, a scheduled watch
+cycle (dnstwist in the Python worker → DNS → diff → events). Design:
+`docs/superpowers/specs/2026-10-30-threat-watcher-v2-design.md`; plans in
+`docs/superpowers/plans/`. `backend/` and `frontend/` stay until Plan 3
+deletes them. `app/README.md` has the run instructions. Tests there use
+`mongodb-memory-server` (first run downloads a MongoDB binary).
+
 ## Commands (run from repo root)
 
 ```bash
 npm install            # installs BOTH workspaces (one root lockfile)
 npm run lint           # eslint, both apps
 npm run typecheck      # tsc --checkJs, both apps
-npm test               # node --test, 33 tests
+npm test               # node --test, three workspaces (33 legacy + app)
 npm run format         # prettier (JS/JSON/MD/CSS only — NOT .ejs)
 npm audit              # must stay at 0 vulnerabilities
 ```

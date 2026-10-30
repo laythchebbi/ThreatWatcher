@@ -3,7 +3,8 @@
 
 Protocol: one JSON object per line on stdin, one per line on stdout.
     {"id":"1","cmd":"permute","domain":"acme-corp.com"} -> {"id":"1","candidates":[...]}
-    {"id":"2","url":"http://example.com/login"}         -> {"id":"2","label":1,"score":0.83,"domain":"example.com"}
+    {"id":"2","url":"http://example.com/login"}
+        -> {"id":"2","label":1,"score":0.83,"domain":"example.com"}
     {"id":"3","cmd":"ping"}                             -> {"id":"3","ok":true}
 
 The model is loaded lazily on the first classify request, so permutations work
