@@ -9,7 +9,7 @@ User=threatwatcher
 Group=threatwatcher
 WorkingDirectory=/opt/threat-watcher/backend
 EnvironmentFile=/opt/threat-watcher/backend/.env
-ExecStart=/usr/bin/python3 scripts/darkweb_crawl.py
+ExecStart=/usr/bin/python3.9 scripts/darkweb_crawl.py
 
 NoNewPrivileges=true
 ProtectSystem=strict

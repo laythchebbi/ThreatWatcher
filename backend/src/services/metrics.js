@@ -18,13 +18,6 @@ const mlClassifications = new client.Counter({
   registers: [registry],
 });
 
-const mongoOperations = new client.Counter({
-  name: "threatwatcher_backend_mongo_ops_total",
-  help: "Total mongoose operations",
-  labelNames: ["model", "op"],
-  registers: [registry],
-});
-
 function httpMetricsMiddleware(req, res, next) {
   const start = process.hrtime.bigint();
   res.on("finish", () => {
@@ -39,6 +32,5 @@ module.exports = {
   registry,
   httpDuration,
   mlClassifications,
-  mongoOperations,
   httpMetricsMiddleware,
 };

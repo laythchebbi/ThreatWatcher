@@ -8,7 +8,6 @@ const logger = require("../logger");
 const ML_DIR = path.resolve(__dirname, "../../ml");
 const SCRIPTS = {
   url: path.join(ML_DIR, "url_classifier.py"),
-  content: path.join(ML_DIR, "content_classifier.py"),
 };
 
 class Worker {
@@ -20,6 +19,7 @@ class Worker {
     this.rl = null;
     this.pending = new Map();
     this.ready = false;
+    this.everReady = false;
     this.shutdown = false;
     this.restartDelayMs = 1000;
   }
@@ -47,7 +47,9 @@ class Worker {
           rej(new Error(`ml worker ${this.name} exited`));
         }
         this.pending.clear();
-        if (!this.shutdown) {
+        // Only restart a worker that once worked; one that never became ready
+        // (missing model, broken venv) would just loop forever at 30s.
+        if (!this.shutdown && this.everReady) {
           setTimeout(() => this.start().catch(() => {}), this.restartDelayMs);
           this.restartDelayMs = Math.min(this.restartDelayMs * 2, 30_000);
         }
@@ -67,6 +69,7 @@ class Worker {
           firstLine = false;
           if (msg.ready) {
             this.ready = true;
+            this.everReady = true;
             this.restartDelayMs = 1000;
             logger.info({ worker: this.name }, "ml worker ready");
             resolve();
@@ -113,7 +116,6 @@ class Worker {
 
 const workers = {
   url: new Worker("url", SCRIPTS.url, { ML_URL_MODEL: env.ML_URL_MODEL }),
-  content: new Worker("content", SCRIPTS.content, { ML_CONTENT_MODEL: env.ML_CONTENT_MODEL }),
 };
 
 async function start() {
@@ -136,12 +138,8 @@ function classifyUrl(url, opts) {
   return workers.url.classify({ url }, opts);
 }
 
-function classifyContent(payload, opts) {
-  return workers.content.classify(payload, opts);
-}
-
 function readiness() {
   return Object.fromEntries(Object.entries(workers).map(([k, w]) => [k, w.ready]));
 }
 
-module.exports = { start, stop, classifyUrl, classifyContent, readiness };
+module.exports = { start, stop, classifyUrl, readiness };

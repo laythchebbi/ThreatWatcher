@@ -9,7 +9,8 @@ into a two-app npm **workspaces** monorepo. Quality/reliability is the priority.
   replaced the legacy MSSQL/MySQL/SQLite). WorkOS auth (access tokens verified
   via JWKS with `jose`). Python ML classifiers called over a `child_process`
   bridge. `prom-client` `/metrics`, `pino` logging, `zod` validation,
-  structured `HttpError`, `helmet` + `compression`.
+  structured `HttpError`, `helmet` + `compression`. No CORS/cookies on the
+  backend: browsers only ever talk to the frontend, which proxies with a header.
 - **`frontend/`** — Express + EJS UI (port 4000). WorkOS AuthKit OAuth flow,
   sealed `iron-session` cookies. **Dashboard + reports are server-rendered**
   (no client-fetch flash). Calls backend via an `/api/*` proxy that attaches the
@@ -28,7 +29,7 @@ and holds app-specific fields (`monitoredDomains`, `role`, `deactivatedAt`).
 npm install            # installs BOTH workspaces (one root lockfile)
 npm run lint           # eslint, both apps
 npm run typecheck      # tsc --checkJs, both apps
-npm test               # node --test, 32 tests
+npm test               # node --test, 33 tests
 npm run format         # prettier (JS/JSON/MD/CSS only — NOT .ejs)
 npm audit              # must stay at 0 vulnerabilities
 ```

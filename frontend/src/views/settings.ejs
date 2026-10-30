@@ -120,8 +120,6 @@
       <h2>Integrations</h2>
       <div class="desc">Configured on the backend via <code class="tw-mono">.env</code> — see <code class="tw-mono">SECURITY.md</code>.</div>
       <div class="kv"><span>WorkOS</span><%= (workos && workos.sub) ? "connected" : "not connected" %></div>
-      <div class="kv"><span>WhoisXML API</span><%= integrations.whoisxml ? "configured" : "missing — set WHOISXML_API_KEY" %></div>
-      <div class="kv"><span>Slack webhook</span><%= integrations.slack ? "configured" : "missing — set SLACK_BOT_TOKEN" %></div>
       <div class="kv"><span>Tor proxy</span>backend/scripts/darkweb_crawl.py uses socks5h://127.0.0.1:9050</div>
     </section>
 

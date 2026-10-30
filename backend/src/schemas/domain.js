@@ -14,10 +14,6 @@ const domainName = z
     return labels.every((label) => domainLabel.test(label));
   }, "invalid domain format");
 
-const searchDomainBody = z.object({
-  domain: domainName,
-});
-
 const searchDomainParams = z.object({
   domain: domainName,
 });
@@ -28,4 +24,4 @@ const dataleakQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
 
-module.exports = { domainName, searchDomainBody, searchDomainParams, dataleakQuery };
+module.exports = { domainName, searchDomainParams, dataleakQuery };

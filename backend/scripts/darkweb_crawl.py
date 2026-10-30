@@ -18,15 +18,17 @@ import hashlib
 import logging
 import os
 import sys
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Iterable
 
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient, UpdateOne
 
 LOG = logging.getLogger("darkweb_crawl")
-logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(message)s"
+)
 
 MONGO_URI = os.environ.get("MONGODB_URI")
 TOR_PROXY = os.environ.get("TOR_PROXY", "socks5h://127.0.0.1:9050")
@@ -40,14 +42,16 @@ if not MONGO_URI:
 def fetch(url: str, timeout: int = 30) -> str | None:
     proxies = {"http": TOR_PROXY, "https": TOR_PROXY}
     try:
-        res = requests.get(url, proxies=proxies, timeout=timeout, headers={"User-Agent": "ThreatWatcher/0.1"})
-        if res.status_code != 200:
-            LOG.warning("non-200: %s %s", res.status_code, url)
-            return None
-        return res.text
+        res = requests.get(
+            url, proxies=proxies, timeout=timeout, headers={"User-Agent": "ThreatWatcher/0.1"}
+        )
     except requests.RequestException as exc:
         LOG.warning("fetch failed: %s -> %s", url, exc)
         return None
+    if res.status_code != 200:
+        LOG.warning("non-200: %s %s", res.status_code, url)
+        return None
+    return res.text
 
 
 def parse_page(url: str, html: str) -> dict:
@@ -66,14 +70,17 @@ def parse_page(url: str, html: str) -> dict:
     }
 
 
-def crawl(sources: Iterable[dict]) -> list[UpdateOne]:
+def crawl(sources: Iterable[dict]) -> tuple[list[UpdateOne], list]:
+    """Returns (upsert ops, ids of sources whose fetch failed)."""
     ops: list[UpdateOne] = []
+    failed: list = []
     for src in sources:
         url = src.get("url")
         if not url:
             continue
         html = fetch(url)
         if html is None:
+            failed.append(src["_id"])
             continue
         page = parse_page(url, html)
         page["sourceUrl"] = url
@@ -84,27 +91,31 @@ def crawl(sources: Iterable[dict]) -> list[UpdateOne]:
                 upsert=True,
             )
         )
-    return ops
+    return ops, failed
 
 
 def main() -> int:
     client = MongoClient(MONGO_URI)
-    db_name = MongoClient(MONGO_URI).get_default_database().name
-    db = client[db_name] if db_name else client.get_database()
+    db = client.get_default_database()
     sources = list(db.darkweb_sources.find({"enabled": True}))
     LOG.info("crawling %d sources", len(sources))
-    ops = crawl(sources)
-    if not ops:
+    ops, failed = crawl(sources)
+    if ops:
+        result = db.darkweb_pages.bulk_write(ops, ordered=False)
+        LOG.info("upserted: %d, modified: %d", result.upserted_count, result.modified_count)
+    else:
         LOG.info("no pages to upsert")
-        return 0
-    result = db.darkweb_pages.bulk_write(ops, ordered=False)
-    LOG.info("upserted: %d, modified: %d", result.upserted_count, result.modified_count)
 
     now = datetime.now(timezone.utc)
+    ok_ids = [s["_id"] for s in sources if s["_id"] not in failed]
     db.darkweb_sources.update_many(
-        {"_id": {"$in": [s["_id"] for s in sources]}},
-        {"$set": {"lastCrawledAt": now, "lastStatus": "ok"}},
+        {"_id": {"$in": ok_ids}}, {"$set": {"lastCrawledAt": now, "lastStatus": "ok"}}
     )
+    db.darkweb_sources.update_many(
+        {"_id": {"$in": failed}}, {"$set": {"lastCrawledAt": now, "lastStatus": "unreachable"}}
+    )
+    if failed:
+        LOG.warning("unreachable sources: %d", len(failed))
     return 0
 
 

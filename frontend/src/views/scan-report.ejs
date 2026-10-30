@@ -112,7 +112,7 @@ document.getElementById("reportTabs").addEventListener("click", function (e) {
   document.querySelectorAll(".report-pane").forEach(function (p) { p.hidden = p.dataset.pane !== name; });
 });
 document.getElementById("copyJsonBtn").addEventListener("click", function () {
-  var data = <%- JSON.stringify(report) %>;
+  var data = <%- JSON.stringify(report).replace(/</g, "\\u003c") %>;
   navigator.clipboard.writeText(JSON.stringify(data, null, 2));
 });
 </script>

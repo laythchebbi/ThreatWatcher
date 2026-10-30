@@ -330,7 +330,6 @@ app.get("/settings", requireAuth, async (req, res, next) => {
       profile: me?.user || {},
       workos: me?.workos || {},
       isAdmin: (me?.user?.role || "") === "admin",
-      integrations: { whoisxml: false, slack: false },
     });
   } catch (err) {
     next(err);

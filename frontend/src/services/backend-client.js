@@ -44,22 +44,18 @@ module.exports = {
     const res = await withAuth(token).get("/auth/me");
     return res.data;
   },
-  async searchDomain(token, domain) {
-    const res = await withAuth(token).get(`/api/domains/search/${encodeURIComponent(domain)}`);
-    return res.data;
-  },
   async scanDomain(token, domain) {
-    const res = await withAuth(token).post(`/api/domains/scan/${encodeURIComponent(domain)}`);
+    // A scan fans out to dnstwister + one DNS lookup per candidate; it can
+    // legitimately outlive the default BACKEND_REQUEST_TIMEOUT_MS.
+    const res = await withAuth(token).post(
+      `/api/domains/scan/${encodeURIComponent(domain)}`,
+      undefined,
+      { timeout: 60_000 }
+    );
     return res.data;
   },
   async listReports(token, limit = 50) {
     const res = await withAuth(token).get(`/api/reports?limit=${limit}`);
-    return res.data;
-  },
-  async dataleakSearch(token, query, source = "all") {
-    const res = await withAuth(token).get(
-      `/api/dataleak/search?q=${encodeURIComponent(query)}&source=${source}`
-    );
     return res.data;
   },
 };

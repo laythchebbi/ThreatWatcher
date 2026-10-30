@@ -1,13 +1,12 @@
 const { verifyAccessToken } = require("../services/workos");
 const User = require("../models/user");
-const { env } = require("../config");
 const logger = require("../logger");
 
 /**
  * Authenticate an incoming request using a WorkOS access token.
  * The token comes from the `Authorization: Bearer <token>` header attached
  * by the frontend's `/api/*` proxy (which reads it from the sealed session
- * cookie). For service-to-service we still accept `X-Internal-Key`.
+ * cookie).
  *
  * On success: `req.auth` is set to the decoded WorkOS payload; `req.user`
  * to the local Mongo User doc (upserted on first sight).
@@ -65,14 +64,6 @@ async function requireUser(req, res, next) {
   }
 }
 
-function requireServiceKey(req, res, next) {
-  const key = req.headers["x-internal-key"];
-  if (!key || key !== env.INTERNAL_API_KEY) {
-    return res.status(401).json({ error: "unauthorized" });
-  }
-  return next();
-}
-
 function requireRole(role) {
   return function roleGuard(req, res, next) {
     if (!req.user) return res.status(401).json({ error: "unauthorized" });
@@ -81,4 +72,4 @@ function requireRole(role) {
   };
 }
 
-module.exports = { requireUser, requireServiceKey, requireRole };
+module.exports = { requireUser, requireRole };

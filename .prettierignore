@@ -3,5 +3,4 @@ node_modules/
 **/*.min.css
 **/*.min.js
 **/styles.css
-frontend/src/public/js/app.js
 .superpowers/

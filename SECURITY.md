@@ -54,11 +54,8 @@ The simplest, safest path:
 ## What goes in `.env`, never in git
 
 - `MONGODB_URI`
-- `WHOISXML_API_KEY`
-- `SLACK_BOT_TOKEN`
-- `JWT_SECRET`
-- `INTERNAL_API_KEY`
-- `SESSION_SECRET`
+- `WORKOS_API_KEY`
+- `SESSION_PASSWORD`
 - Any future API keys or DB connection strings
 
 The repo root `.gitignore` excludes `.env` and `.env.local`. Each app (`backend/`, `frontend/`) ships a `.env.example` with the _names_ of required variables but no values.

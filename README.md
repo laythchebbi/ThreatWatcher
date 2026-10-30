@@ -28,7 +28,7 @@ Early-phase threat detection platform. Modernized from a 2022 multi-component co
 - **`frontend/`** — Express + EJS UI (one process on `:4000`).
 - **`backend/`** — Express API + ML helpers + scheduled crawler scripts (one process on `:3000`).
 - **MongoDB** — single database (`threatwatcher`). Replaces the legacy MSSQL + MySQL + SQLite triple.
-- **`ml/`** — small Python scripts (URL classifier, content classifier) called from the backend via `child_process`. CLI protocol: JSON-per-line on stdin/stdout.
+- **`ml/`** — the Python URL-classifier worker called from the backend via `child_process`. CLI protocol: JSON-per-line on stdin/stdout.
 - **`scripts/`** — standalone Python jobs (dark-web crawler) scheduled via cron or the systemd timer in `deploy/systemd/`. Tor itself is a system service, not managed by the app.
 
 ## Run locally
@@ -111,7 +111,6 @@ Backend (`:3000`). Every `/auth/*` and `/api/*` route requires a WorkOS access t
 - `GET  /api/users`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate` — _admin_ (roles come from WorkOS: set them on the invitation or in the WorkOS dashboard)
 - `GET  /api/domains/search/:domain`
 - `POST /api/domains/scan/:domain` (writes a `Report`)
-- `GET  /api/domains/daily/:domain`, `GET /api/domains/registered/:domain`
 - `GET  /api/reports?limit=50`, `GET /api/reports/:id`
 - `GET  /api/dataleak/search?q=...&source=telegram|twitter|forum|darkweb|all`
 

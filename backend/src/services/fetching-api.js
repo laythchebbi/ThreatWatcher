@@ -1,6 +1,4 @@
 const dns = require("node:dns/promises");
-const { env } = require("../config");
-const logger = require("../logger");
 
 /**
  * Generate fuzzy-similar domains via the dnstwister.report API.
@@ -9,7 +7,7 @@ const logger = require("../logger");
 async function dnsTwistFuzz(domainName) {
   const hex = Buffer.from(domainName, "utf8").toString("hex");
   const url = `https://dnstwister.report/api/fuzz/${hex}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`dnstwister ${url} -> ${res.status}`);
   const body = /** @type {{ fuzzy_domains?: { domain: string }[] }} */ (await res.json());
   return body.fuzzy_domains || [];
@@ -18,13 +16,18 @@ async function dnsTwistFuzz(domainName) {
 /**
  * Resolve which domains in a list have DNS records (i.e. registered/live).
  * Errors are swallowed per-domain — returns only those that resolved.
+ *
+ * shortcut: dns.resolve() checks A records only. Unlike dns.lookup() it does
+ * not go through the 4-thread libuv pool, which thousands of parallel
+ * candidates would exhaust. Upgrade to resolveAny() if AAAA-only lookalikes
+ * ever matter.
  */
 async function filterRegistered(domainList) {
   const out = [];
   await Promise.all(
     domainList.map(async (d) => {
       try {
-        await dns.lookup(d);
+        await dns.resolve(d);
         out.push(d);
       } catch {
         /* unresolved is fine — just means not registered */
@@ -34,21 +37,4 @@ async function filterRegistered(domainList) {
   return out;
 }
 
-/**
- * WhoisXML lookup for a single domain. Returns parsed JSON, or null on failure.
- */
-async function whois(domainName) {
-  if (!env.WHOISXML_API_KEY) {
-    logger.warn("WHOISXML_API_KEY not set — whois() will return null");
-    return null;
-  }
-  const url = `https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${env.WHOISXML_API_KEY}&domainName=${encodeURIComponent(domainName)}&outputFormat=json`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    logger.warn({ status: res.status, domainName }, "whois fetch failed");
-    return null;
-  }
-  return res.json();
-}
-
-module.exports = { dnsTwistFuzz, filterRegistered, whois };
+module.exports = { dnsTwistFuzz, filterRegistered };

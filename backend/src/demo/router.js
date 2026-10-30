@@ -5,13 +5,15 @@
 const { Router } = require("express");
 const crypto = require("node:crypto");
 const sim = require("../services/domain-similarity");
+const validate = require("../middleware/validate");
+const { searchDomainParams, dataleakQuery } = require("../schemas/domain");
 const { demoUser, reports, leaks, invitations } = require("./data");
 const logger = require("../logger");
 
 const router = Router();
 
 router.get("/health", (_req, res) => {
-  res.json({ ok: true, demo: true, mongo: false, ml: { url: false, content: false } });
+  res.json({ ok: true, demo: true, mongo: false, ml: { url: false } });
 });
 
 // ── Identity ────────────────────────────────────────────────────────────────
@@ -73,8 +75,8 @@ function syntheticCandidates(domain) {
   return [...out];
 }
 
-router.post("/api/domains/scan/:domain", (req, res) => {
-  const domain = String(req.params.domain).toLowerCase();
+router.post("/api/domains/scan/:domain", validate(searchDomainParams, "params"), (req, res) => {
+  const { domain } = req.params;
   const scored = sim.scoreDomains(domain, syntheticCandidates(domain), 0.45).map((s) => ({
     ...s,
     punycode: sim.isPunycode(s.domain),
@@ -108,8 +110,8 @@ router.post("/api/domains/scan/:domain", (req, res) => {
   res.status(201).json({ report });
 });
 
-router.get("/api/domains/search/:domain", (req, res) => {
-  const domain = String(req.params.domain).toLowerCase();
+router.get("/api/domains/search/:domain", validate(searchDomainParams, "params"), (req, res) => {
+  const { domain } = req.params;
   const results = sim.scoreDomains(domain, syntheticCandidates(domain), 0.45).map((s) => ({
     ...s,
     punycode: sim.isPunycode(s.domain),
@@ -119,9 +121,9 @@ router.get("/api/domains/search/:domain", (req, res) => {
 });
 
 // ── Data-leak search ─────────────────────────────────────────────────────────
-router.get("/api/dataleak/search", (req, res) => {
-  const q = String(req.query.q || "").toLowerCase();
-  const source = String(req.query.source || "all");
+router.get("/api/dataleak/search", validate(dataleakQuery, "query"), (req, res) => {
+  const q = String(req.query.q).toLowerCase();
+  const source = String(req.query.source);
   const match = (text) =>
     !q ||
     String(text || "")

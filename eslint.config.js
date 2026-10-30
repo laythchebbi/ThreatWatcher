@@ -3,13 +3,7 @@ const prettier = require("eslint-config-prettier");
 
 module.exports = [
   {
-    ignores: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/coverage/**",
-      "**/*.min.js",
-      "frontend/src/public/js/app.js",
-    ],
+    ignores: ["**/node_modules/**", "**/dist/**", "**/coverage/**", "**/*.min.js"],
   },
   js.configs.recommended,
   {
@@ -32,6 +26,7 @@ module.exports = [
         clearInterval: "readonly",
         setImmediate: "readonly",
         fetch: "readonly",
+        AbortSignal: "readonly",
         URL: "readonly",
         URLSearchParams: "readonly",
       },
@@ -42,6 +37,13 @@ module.exports = [
       eqeqeq: ["error", "smart"],
       "prefer-const": "error",
       "no-var": "error",
+    },
+  },
+  {
+    files: ["frontend/src/public/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: { window: "readonly", document: "readonly", localStorage: "readonly" },
     },
   },
   prettier,

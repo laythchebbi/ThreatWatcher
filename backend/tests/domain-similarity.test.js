@@ -2,7 +2,6 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
 process.env.MONGODB_URI ||= "mongodb://localhost:27017/threatwatcher-test";
-process.env.INTERNAL_API_KEY ||= "x".repeat(16);
 process.env.WORKOS_API_KEY ||= "sk_test_unit";
 process.env.WORKOS_CLIENT_ID ||= "client_unit";
 process.env.WORKOS_ORGANIZATION_ID ||= "org_unit";

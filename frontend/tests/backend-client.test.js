@@ -26,7 +26,7 @@ test("withAuth returns the unauthenticated client when no token", () => {
 });
 
 test("backend module exports the expected typed methods", () => {
-  for (const m of ["me", "searchDomain", "scanDomain", "listReports", "dataleakSearch"]) {
+  for (const m of ["me", "scanDomain", "listReports"]) {
     assert.equal(typeof backend[m], "function", `missing method: ${m}`);
   }
 });

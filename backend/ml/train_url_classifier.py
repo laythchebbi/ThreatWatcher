@@ -23,17 +23,21 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 from sklearn.model_selection import train_test_split
 
 _DOMAIN_RE = re.compile(r"(?:\w*://)?(?:.*\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{1,}).*")

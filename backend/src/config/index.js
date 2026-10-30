@@ -8,20 +8,13 @@ const schema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
-  INTERNAL_API_KEY: z.string().min(16, "INTERNAL_API_KEY must be at least 16 chars"),
 
   WORKOS_API_KEY: z.string().regex(/^sk_/, "WORKOS_API_KEY must start with sk_"),
   WORKOS_CLIENT_ID: z.string().regex(/^client_/, "WORKOS_CLIENT_ID must start with client_"),
   WORKOS_ORGANIZATION_ID: z.string().regex(/^org_/, "WORKOS_ORGANIZATION_ID must start with org_"),
 
-  FRONTEND_ORIGIN: z.string().url().default("http://localhost:4000"),
-
-  WHOISXML_API_KEY: z.string().optional().default(""),
-  SLACK_BOT_TOKEN: z.string().optional().default(""),
-
-  PYTHON_BIN: z.string().default("python"),
+  PYTHON_BIN: z.string().default("python3"),
   ML_URL_MODEL: z.string().default("ml/models/url_classifier.pkl"),
-  ML_CONTENT_MODEL: z.string().default("ml/models/content_classifier.pkl"),
 
   LOG_FILE: z.string().optional(),
 
@@ -37,7 +30,6 @@ const schema = z.object({
 const raw = { ...process.env };
 if (/^(1|true|yes|on)$/i.test(raw.DEMO_MODE || "")) {
   raw.MONGODB_URI ||= "mongodb://demo-disabled:27017/threatwatcher-demo";
-  raw.INTERNAL_API_KEY ||= "demo-internal-key-unused-000000";
   raw.WORKOS_API_KEY ||= "sk_demo_placeholder_unused";
   raw.WORKOS_CLIENT_ID ||= "client_demo_placeholder";
   raw.WORKOS_ORGANIZATION_ID ||= "org_demo_placeholder";

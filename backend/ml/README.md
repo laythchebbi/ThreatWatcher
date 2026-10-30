@@ -10,20 +10,17 @@ Pinned to **scikit-learn 0.22.1** to keep the legacy `.pkl` files working.
 pip install -r backend/ml/requirements.txt
 ```
 
-The Node `src/services/ml-bridge.js` spawns one persistent Python worker per
-classifier on app start. Each worker reads JSON-per-line on stdin and emits
-JSON-per-line on stdout:
+The Node `src/services/ml-bridge.js` spawns one persistent Python worker on
+app start. It reads JSON-per-line on stdin and emits JSON-per-line on stdout:
 
 ```json
 {"id":"abc","url":"http://example.com/login"}
 {"id":"abc","score":0.83,"label":1,"domain":"example.com"}
 ```
 
-Workers:
-
-- `url_classifier.py` — loads `models/url_classifier.pkl` + `models/url_vectorizer.pkl`.
-- `content_classifier.py` — feature extraction (40+ heuristics) + optional model
-  scoring if `ML_CONTENT_MODEL` is set.
+`url_classifier.py` loads `models/url_classifier.pkl` + `models/url_vectorizer.pkl`.
+A worker that fails to start (missing model, wrong Python) is logged once and
+not retried; `/health` reports `ml.url: false`.
 
 Pre-trained `.pkl` files are **not committed** (`.gitignore`d). Drop them into
 `backend/ml/models/`, or train your own (see below).
@@ -78,7 +75,6 @@ backend/ml/
 ├── requirements.txt          pinned (output of pip-compile)
 ├── requirements-train.txt    M4 retrain stack (sklearn 1.x, skl2onnx)
 ├── url_classifier.py         runtime worker (Python bridge)
-├── content_classifier.py     runtime worker
 ├── train_url_classifier.py   M4 retrain script
 ├── export_onnx.py            M4 ONNX export
 └── models/                   .pkl / .onnx artifacts (gitignored)

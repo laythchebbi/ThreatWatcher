@@ -5,13 +5,9 @@ const redact = {
   paths: [
     "req.headers.authorization",
     "req.headers.cookie",
-    "req.headers['x-internal-key']",
     "*.password",
     "*.token",
     "*.MONGODB_URI",
-    "*.JWT_SECRET",
-    "*.WHOISXML_API_KEY",
-    "*.SLACK_BOT_TOKEN",
   ],
   remove: true,
 };

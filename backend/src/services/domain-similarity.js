@@ -1,5 +1,4 @@
 const stringSimilarity = require("string-similarity");
-const logger = require("../logger");
 
 /**
  * Score domains by Dice coefficient against a reference domain.
@@ -44,27 +43,6 @@ function isPunycode(domain) {
 }
 
 /**
- * Compare the visible HTML text content of two URLs.
- * Returns a 0..1 similarity, or null if either fetch fails.
- */
-async function compareTwoPages(urlA, urlB) {
-  const cheerio = require("cheerio");
-  async function bodyText(url) {
-    const res = await fetch(url, { redirect: "follow" });
-    if (!res.ok) throw new Error(`fetch ${url} -> ${res.status}`);
-    const html = await res.text();
-    return cheerio.load(html)("html").text();
-  }
-  try {
-    const [a, b] = await Promise.all([bodyText(urlA), bodyText(urlB)]);
-    return Number(stringSimilarity.compareTwoStrings(a, b).toFixed(4));
-  } catch (err) {
-    logger.warn({ err: { message: err.message }, urlA, urlB }, "compareTwoPages failed");
-    return null;
-  }
-}
-
-/**
  * SecureScore composite: 0..1 where HIGHER means SAFER (1 = no threat
  * signals). The UI colours >= 0.7 green and < 0.4 red. Threat points use
  * the legacy weighting (active server, substring, IDN, visual sim).
@@ -79,4 +57,4 @@ function secureScore({ activeServer, substring, idn, visualSimilarity }) {
   return Number((1 - pts / max).toFixed(4));
 }
 
-module.exports = { scoreDomains, isSubstringMatch, isPunycode, compareTwoPages, secureScore };
+module.exports = { scoreDomains, isSubstringMatch, isPunycode, secureScore };

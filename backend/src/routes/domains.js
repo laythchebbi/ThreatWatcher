@@ -4,8 +4,6 @@ const validate = require("../middleware/validate");
 const { requireUser } = require("../middleware/auth");
 const { searchDomainParams } = require("../schemas/domain");
 
-const DailyDomain = require("../models/dailyDomain");
-const RegisteredDomain = require("../models/registeredDomain");
 const Report = require("../models/report");
 
 const similarity = require("../services/domain-similarity");
@@ -46,32 +44,6 @@ router.get("/search/:domain", validate(searchDomainParams, "params"), async (req
     return next(err);
   }
 });
-
-router.get("/daily/:domain", validate(searchDomainParams, "params"), async (req, res, next) => {
-  try {
-    const items = await DailyDomain.find({ mainDomain: req.params.domain })
-      .sort({ dateOfScan: -1 })
-      .limit(200);
-    return res.json({ count: items.length, items });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.get(
-  "/registered/:domain",
-  validate(searchDomainParams, "params"),
-  async (req, res, next) => {
-    try {
-      const items = await RegisteredDomain.find({ mainDomain: req.params.domain })
-        .sort({ dateOfScan: -1 })
-        .limit(200);
-      return res.json({ count: items.length, items });
-    } catch (err) {
-      return next(err);
-    }
-  }
-);
 
 router.post("/scan/:domain", validate(searchDomainParams, "params"), async (req, res, next) => {
   try {
