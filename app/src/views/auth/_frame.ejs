@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title><%= title %> — Threat Watcher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/styles.css">
+<style>
+  .auth-card { width: 100%; max-width: 380px; padding: 32px; background: var(--tw-bg-1); border: 1px solid var(--tw-line); border-radius: var(--tw-radius-lg); }
+  .auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .auth-brand .name { font-weight: 500; font-size: 16px; }
+  .auth-brand .sub { font-family: var(--tw-font-mono); font-size: 10px; color: var(--tw-fg-2); letter-spacing: .08em; }
+  .auth-msg { border-radius: var(--tw-radius); padding: 10px 12px; font-size: 12px; margin-bottom: 14px; border: 1px solid; }
+  .auth-msg.error { background: var(--tw-critical-soft); color: var(--tw-critical); border-color: var(--tw-critical); }
+  .auth-msg.info { background: var(--tw-info-soft); color: var(--tw-info); border-color: var(--tw-info); }
+  .auth-card form { display: grid; gap: 12px; }
+  .auth-links { margin-top: 18px; font-size: 12px; color: var(--tw-fg-2); display: flex; justify-content: space-between; }
+  .auth-links a { color: var(--tw-accent); }
+</style>
+</head>
+<body>
+<div class="tw-frame-center">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 2 3 5v8c0 5.5 4.2 9.5 10 11 5.8-1.5 10-5.5 10-11V5l-10-3Z" fill="var(--tw-accent-soft)" stroke="var(--tw-accent)" stroke-width="1.4"/><circle cx="13" cy="12" r="3" fill="var(--tw-accent)"/></svg>
+      <div><div class="name">Threat Watcher</div><div class="sub"><%= title.toUpperCase() %></div></div>
+    </div>
+    <% if (error) { %><div class="auth-msg error"><%= error %></div><% } %>
+    <% if (message) { %><div class="auth-msg info"><%= message %></div><% } %>

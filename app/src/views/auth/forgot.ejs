@@ -1,0 +1,8 @@
+<%- include("_frame") %>
+    <form method="post" action="/forgot">
+      <label class="tw-label" for="email">Email</label>
+      <input class="tw-input tw-mono" id="email" name="email" type="email" autocomplete="email" required>
+      <button class="tw-btn tw-btn-primary tw-btn-lg" type="submit">Send reset link</button>
+    </form>
+    <div class="auth-links"><a href="/login">Back to sign in</a></div>
+<%- include("_end") %>

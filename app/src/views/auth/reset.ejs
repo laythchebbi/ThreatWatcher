@@ -1,0 +1,10 @@
+<%- include("_frame") %>
+    <% if (token) { %>
+    <form method="post" action="/reset/<%= token %>">
+      <label class="tw-label" for="password">New password (10 or more characters)</label>
+      <input class="tw-input" id="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+      <button class="tw-btn tw-btn-primary tw-btn-lg" type="submit">Set password</button>
+    </form>
+    <% } %>
+    <div class="auth-links"><a href="/forgot">Request a new link</a><a href="/login">Sign in</a></div>
+<%- include("_end") %>

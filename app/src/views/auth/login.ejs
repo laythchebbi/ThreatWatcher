@@ -1,0 +1,11 @@
+<%- include("_frame") %>
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label class="tw-label" for="email">Email</label>
+      <input class="tw-input tw-mono" id="email" name="email" type="email" autocomplete="email" required>
+      <label class="tw-label" for="password">Password</label>
+      <input class="tw-input" id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="tw-btn tw-btn-primary tw-btn-lg" type="submit">Sign in</button>
+    </form>
+    <div class="auth-links"><a href="/forgot">Forgot password?</a><a href="/signup">Create an account</a></div>
+<%- include("_end") %>
