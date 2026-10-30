@@ -5,16 +5,17 @@
   "description": "Threat Watcher — early-phase threat detection platform (workspace root)",
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "app"
   ],
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{js,json,md,css}\"",
-    "test": "npm run -w backend test && npm run -w frontend test",
-    "typecheck": "npm run -w backend typecheck && npm run -w frontend typecheck",
-    "audit": "npm audit --audit-level=high && npm -w backend audit --audit-level=high && npm -w frontend audit --audit-level=high",
+    "test": "npm run -w backend test && npm run -w frontend test && npm run -w app test",
+    "typecheck": "npm run -w backend typecheck && npm run -w frontend typecheck && npm run -w app typecheck",
+    "audit": "npm audit --audit-level=high",
     "prepare": "husky || true"
   },
   "devDependencies": {

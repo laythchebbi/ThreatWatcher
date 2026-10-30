@@ -40,7 +40,7 @@ module.exports = [
     },
   },
   {
-    files: ["frontend/src/public/**/*.js"],
+    files: ["frontend/src/public/**/*.js", "app/src/public/**/*.js"],
     languageOptions: {
       sourceType: "script",
       globals: { window: "readonly", document: "readonly", localStorage: "readonly" },

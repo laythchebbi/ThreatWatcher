@@ -1,0 +1,32 @@
+{
+  "name": "threat-watcher-app",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Threat Watcher v2 — single-process app (Express + EJS + MongoDB)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-reporter=spec"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "compression": "1.8.2",
+    "dotenv": "16.4.5",
+    "ejs": "3.1.10",
+    "express": "4.22.3",
+    "express-ejs-layouts": "2.5.1",
+    "helmet": "8.0.0",
+    "iron-session": "8.0.4",
+    "mongoose": "8.24.4",
+    "pino": "9.5.0",
+    "pino-http": "10.3.0",
+    "pino-pretty": "11.3.0",
+    "string-similarity": "4.0.4",
+    "zod": "4.6.7"
+  }
+}
