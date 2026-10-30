@@ -1,6 +1,6 @@
 # Threat Watcher v2 — design
 
-Date: 2026-10-30. Status: draft for approval, revised after two independent reviews. Supersedes the "two apps + WorkOS"
+Date: 2026-10-30. Status: draft for approval, revised after two independent reviews and the market research in `2026-10-30-market-research.md`. Supersedes the "two apps + WorkOS"
 shape documented in `README.md` and `CLAUDE.md`.
 
 ## 1. Intent
@@ -217,26 +217,52 @@ dashboard keeps a single number per domain.
 An in-process scheduler (`setInterval` every minute, picks domains whose
 `nextWatchAt` has passed, at most 3 concurrently) runs, per domain:
 
-1. **Permute.** dnstwister fuzz as today (15 s timeout). On failure, reuse the
-   last permutation list stored on the domain so a flaky API never blanks a
-   watch.
+1. **Permute.** `dnstwist` runs **locally** in the Python worker
+   (`dnstwist.run(domain, format="list")`, same algorithm the hosted service
+   uses, no quota, adds UTS#39 homoglyph skeletons). The worker is the one
+   already spawned for the URL classifier; it answers a `{"cmd":"permute"}`
+   line. dnstwister.report stays only as the fallback when the worker is
+   down (15 s timeout), and on any failure the last permutation list stored
+   on the domain is reused so nothing ever blanks a watch.
    1b. **Combosquats.** Generated locally, no API: label × {login, secure,
    support, verify, account, portal, my, mail, help, id} joined with `-` and
    nothing, × the domain's own TLD plus com, net, org, co, io, app. This is
    the most common 2026 phishing pattern and dnstwister's permutations miss
    most of it.
-2. **Certificates.** Query crt.sh JSON (`https://crt.sh/?q=%25<label>%25&output=json`,
-   20 s timeout, response body capped at 5 MB and 5 000 rows). Skipped for
-   labels shorter than 5 characters (the query times out or returns the
-   internet). Results are cached **per label** for 6 h so two customers on the
-   same brand cost one call; on failure the last cached result is reused, as
-   for dnstwister. CT finds subdomain and substring lookalikes
+2. **Certificates.** Primary: the Cert Spotter search API
+   (`GET https://api.certspotter.com/v1/issuances?domain=<label-pattern>&include_subdomains=true&expand=dns_names&after=<cursor>`,
+   free key, 75 req/min, incremental by `id` cursor stored per label, so each
+   cycle only reads what is new). Backfill on first sight and fallback: crt.sh
+   JSON (`https://crt.sh/?q=%25<label>%25&output=json`, 20 s timeout, body
+   capped at 5 MB and 5 000 rows). Both skipped for labels shorter than 5
+   characters (the query returns the internet). Results are cached **per
+   label** for 6 h so two customers on the same brand cost one call; on
+   failure the last cached result is reused, as for permutations. Renewals
+   are deduplicated on `tbs_sha256`. A self-hosted CT stream
+   (certstream-server-go) is a later upgrade, not v2: it needs a second
+   container. CT finds subdomain and substring lookalikes
    (`acme-corp-login.example`), not typos, so it complements step 1 rather
    than replacing it. Any name that passes the Dice ≥ 0.7 / punycode /
    substring filter becomes a sighting even before DNS resolves.
    One in-process token bucket per external provider (dnstwister, crt.sh) is
    shared by all cycles so the VM's IP is never the thing that gets banned.
-3. **DNS.** `dns.resolve` A records for every candidate (as today).
+3. **DNS.** `dns.resolve` A records for every candidate (as today), plus
+   **MX** and **NS** for every candidate that resolves. An MX record means
+   the lookalike can send or receive mail (`mx_live` event, medium, and a
+   one-step severity bump on everything after). NS and resolved IP are
+   matched against the MISP warninglists for parking nameservers and CDN
+   ranges (vendored JSON, CC0): a parked lookalike is a **watch**, not an
+   alert, until something changes. Changes in A, NS or MX on a known sighting
+   raise `infra_changed` (medium): a parked domain waking up is exactly the
+   "campaign being prepared" moment.
+   3b. **RDAP.** On first sight of a sighting that resolves:
+   `GET https://rdap.org/domain/<name>` (free, no key, follows the registry
+   redirect) for registration date, registrar and nameservers, stored as
+   `rdap { registeredAt, registrar, ns[] }`. Used three ways: names
+   registered more than a year ago with no change are not alerted on
+   (`new_lookalike` stays low and silent); a sighting whose registrar and
+   nameservers match the customer's own domain is auto-labelled **defensive**
+   (state `ignored`, shown as such); and the facts go into every alert.
 4. **HTTP.** For sightings that resolve: `GET https://` then `http://`, 8 s
    timeout, follow ≤ 3 redirects, fixed User-Agent. **SSRF guard:** the
    target is resolved first and refused if any address is loopback, private,
@@ -250,6 +276,12 @@ An in-process scheduler (`setInterval` every minute, picks domains whose
    the event: phishing clones the login page, whose visible text is a dozen
    words, so Dice against marketing copy misses.
 5. **ML.** URL classifier label if the worker is up, else null.
+   5a. **Own-domain posture.** Once a week per protected domain: SPF (`TXT`
+   with `v=spf1`), DMARC (`TXT _dmarc.<domain>`, policy `none`/`quarantine`/
+   `reject`) and whether a DKIM selector the customer names exists. Shown as
+   a grade on the domain page with the one-line fix; a weak policy raises a
+   single `posture_weak` event (low) once, not every week. Lookalike watching
+   never sees exact-domain spoofing; this does, and it is free.
    5b. **Leaks.** Search every leak source for the domain's `terms[]` and the
    domain name itself, limited to pages crawled after the domain's
    `lastWatchedAt` (first cycle: everything, as part of the baseline above,
@@ -260,6 +292,17 @@ An in-process scheduler (`setInterval` every minute, picks domains whose
    scraping) and are **out of v2 scope beyond the interface**; the empty
    collections and their models are deleted until a feed exists. Matches
    become `mentions` rows and `leak_mention` events.
+
+   **Have I Been Pwned as the second leak source.** The customer pastes their
+   own HIBP API key on `/domains/:id` (domains with 10 or fewer breached
+   addresses are free; larger ones need HIBP's own subscription, which the
+   customer buys). HIBP requires the domain to be verified by a DNS TXT
+   record; the page shows the exact record to add. The watch then polls
+   `/latestBreach` once per cycle and re-reads `/breachedDomain/<domain>`
+   only when the latest breach changed. Each new breach touching the domain
+   is a `mentions` row (source `hibp`, excerpt = breach name, date, data
+   classes, count of addresses) and a `leak_mention` event at high. Requests
+   carry a real `User-Agent` and the page credits HIBP (CC BY 4.0).
 
    **Where the crawled pages come from (my call after review).** The crawler
    reads `darkweb_sources`; nothing creates those rows today. v2 ships
@@ -299,25 +342,54 @@ the builder can test them in isolation with recorded fixtures.
   transactional provider's free tier, since mail from a bare VM lands in spam.
   Without `SMTP_URL` the app logs the email instead of sending (dev mode);
   in production the log line never contains tokens or links.
-- **Slack:** incoming webhook URL the customer pastes. **Teams:** incoming
-  webhook URL. Both are a `POST` with a JSON body; same code path with two
-  formatters. Webhook URLs are secrets: masked in the UI after save, never
-  logged. "Send test" on save sets `verifiedAt` and is rate limited.
+- **Slack:** incoming webhook URL the customer pastes
+  (`https://hooks.slack.com/services/…`). Block Kit with at most 50 blocks,
+  section text under 3 000 characters, and always a top-level `text`
+  fallback; one message per second per channel.
+- **Teams:** the Office 365 connector webhooks were switched off in May
+  2026, so the customer creates a **Workflows** webhook ("Send webhook
+  alerts to a channel") and pastes that URL; the page shows the four clicks.
+  Payload is an Adaptive Card wrapped as
+  `{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","contentUrl":null,"content":{…}}]}`,
+  under 28 KB, at most 4 per second. The URL's hostname is not validated
+  beyond `https://`, because it lives on a Power Automate domain that
+  changes.
+- Same code path with three formatters. Webhook URLs are secrets: masked in
+  the UI after save, never logged. "Send test" on save sets `verifiedAt` and
+  is rate limited.
+- **Immediate versus digest.** High and critical events go out immediately
+  (within 1 minute). Medium and low events are collected into one daily
+  digest per channel at 08:00 in the customer's timezone (`users.timezone`,
+  set from the browser at sign-up); empty digests are skipped; the subject
+  carries counts by severity. Each channel can be set to "everything
+  immediately" instead.
+- **Grouping.** One message per domain per 5 minutes; an open sighting is
+  re-notified at most every 4 hours even if it keeps changing; a dismissed or
+  ignored sighting never re-notifies unless the evidence changes (the rules in
+  7.3).
+- **Content.** Every alert carries the facts a customer cannot assemble at
+  2 a.m.: the lookalike, what changed, similarity, registrar and registration
+  date (RDAP), resolved IP and its ASN, nameservers, MX, certificate issuer
+  and `notBefore`, page title, and a deep link. The takedown kit (pre-filled
+  abuse email to the registrar and hosting ASN) is a later feature; the facts
+  it needs are already in the alert.
+- Email carries `List-Unsubscribe` and `List-Unsubscribe-Post` headers even
+  though alerts are transactional; the README says SPF and DKIM must be set
+  on the sending domain or Gmail drops the mail.
 - Failures set `lastError` on the channel and show on the Alerts page; no
   retries beyond one immediate retry.
-- Alert latency target: event written → message sent in under 1 minute.
 
 ### 7.6 Pages (Console direction)
 
-| Route                                           | What it shows                                                                                                                                               |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`                                             | Dashboard: open events feed across all domains, newest first, severity stripe, one line each. Top strip: domains watched, open sightings, events last 24 h. |
-| `/domains`                                      | List with SecureScore, open sightings count, last watched, next watch. "Add domain" inline.                                                                 |
-| `/domains/:id`                                  | Timeline of events for that domain; table of sightings with similarity, DNS, cert, page, ML columns; dismiss button per sighting; "Scan now".               |
-| `/dark-web`                                     | Open leak mentions across all domains, newest first, with source and excerpt; plus the free keyword search over `darkweb_pages` as today.                   |
-| `/alerts`                                       | Email, Slack, Teams channels; minimum severity per channel; send test.                                                                                      |
-| `/settings`                                     | Email, password change, delete account.                                                                                                                     |
-| `/signup`, `/login`, `/forgot`, `/reset/:token` | Auth pages, no shell.                                                                                                                                       |
+| Route                                           | What it shows                                                                                                                                                                                                                                             |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                             | Dashboard: open events feed across all domains, newest first, severity stripe, one line each. Top strip: domains watched, open sightings, events last 24 h.                                                                                               |
+| `/domains`                                      | List with SecureScore, open sightings count, last watched, next watch. "Add domain" inline.                                                                                                                                                               |
+| `/domains/:id`                                  | Timeline of events for that domain; tabs New / Watched / Changed / Inactive / Ignored over the sightings table (similarity, DNS, MX, registrar, cert, page, ML); dismiss and ignore per sighting; brand terms; email-posture grade; HIBP key; "Scan now". |
+| `/dark-web`                                     | Open leak mentions across all domains, newest first, with source and excerpt; plus the free keyword search over `darkweb_pages` as today.                                                                                                                 |
+| `/alerts`                                       | Email, Slack, Teams channels; minimum severity per channel; send test.                                                                                                                                                                                    |
+| `/settings`                                     | Email, password change, delete account.                                                                                                                                                                                                                   |
+| `/signup`, `/login`, `/forgot`, `/reset/:token` | Auth pages, no shell.                                                                                                                                                                                                                                     |
 
 Server-rendered as now. The only client JS is: dismiss sighting, send test
 alert, add/remove domain without a full reload. Keep `app.js` to theme prefs
@@ -381,9 +453,28 @@ on; lint-staged keeps them on every commit.
 
 Each of these is a line item in the implementation plan with its own check.
 
+### 7.10 After v2 (from the research, in order of value)
+
+1. Takedown kit: pre-filled abuse email to registrar and hosting ASN, one
+   click, with a case timeline per threat.
+2. Newly registered domain diff: whoisds daily list first, ICANN CZDS zone
+   files once approved.
+3. Headless-browser evidence: screenshot, pHash, favicon hash, DOM fuzzy
+   hash, and Phish.Report IOK rule matching to name the kit.
+4. Ransomware leak-site mentions (ransomware.live, needs written approval),
+   infostealer check (Hudson Rock), GitHub secret search for `@domain`.
+5. Google Web Risk submission on a confirmed phish.
+6. Self-hosted certificate transparency stream.
+
+Sources that forbid commercial use and stay out at every stage: OpenPhish
+community feed, Google Safe Browsing API, VirusTotal public API, Telegram
+scraping.
+
 ## 8. Left to the builder
 
 - Which customer page to compare text against (default: `https://<domain>/`).
+- The exact combosquat word list and the TLD list for permutations.
+- Which MISP warninglists to vendor and how often to refresh them.
 - Email templates and the Slack/Teams message layouts.
 - How the dashboard paginates past 100 events (cursor on `{ at, _id }`).
 - The exact private-range list for the SSRF guard (RFC 1918, loopback,
@@ -399,15 +490,19 @@ Each of these is a line item in the implementation plan with its own check.
    Gates green on `app/`.
 2. Data model and indexes: domains, sightings, events, mentions,
    alertChannels. Domain pages: add, list, detail.
-3. Watch cycle as pure steps with fixtures: permute, DNS, diff, scheduler,
-   baseline rule, dismiss/gone rules.
-4. Combosquats, certificate transparency with per-label cache and provider
-   token buckets, HTTP enrichment with the SSRF guard and the password-form
-   rule, with the fan-out bounds.
-5. Leak mentions: `terms[]`, `mentions`, the crawler-pages source, seed
-   command, the `/dark-web` page.
-6. Alerts: idempotent delivery on `alertedAt`; email, then Slack and Teams;
-   baseline summary message; domain cap and verification gate.
+3. Watch cycle as pure steps with fixtures: local dnstwist via the worker,
+   combosquats, DNS with MX/NS and parking/CDN suppression, RDAP, diff,
+   `infra_changed`, scheduler, baseline rule, dismiss/ignore/gone rules.
+4. Certificates via Cert Spotter cursor polling with crt.sh backfill,
+   per-label cache and provider token buckets; HTTP enrichment with the
+   SSRF guard and the password-form rule; own-domain SPF/DMARC/DKIM grade;
+   all with the fan-out bounds.
+5. Leak mentions: `terms[]`, `mentions`, the crawler-pages source, the HIBP
+   source with per-customer key and TXT verification, seed command, the
+   `/dark-web` page.
+6. Alerts: idempotent delivery on `alertedAt`; immediate versus daily
+   digest; email, Slack Block Kit, Teams Workflows Adaptive Card; the facts
+   block; baseline summary message; domain cap and verification gate.
 7. Console UI pass over every page; client script under 5 KB.
 8. Performance checks from 7.9 as tests; delete `backend/` and `frontend/`;
    deploy files and docs.
