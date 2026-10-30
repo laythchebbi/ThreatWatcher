@@ -1,0 +1,31 @@
+<div class="tw-page-head" style="margin-bottom:18px">
+  <div class="tw-eyebrow">Watch · Domains</div>
+  <h1>Protected domains</h1>
+</div>
+
+<% if (notice) { %><div class="tw-banner tw-banner-info" style="margin-bottom:14px"><%= notice %></div><% } %>
+
+<form class="tw-scan-bar" method="post" action="/domains">
+  <input name="name" placeholder="Add a domain to watch, e.g. acme-corp.com" autocomplete="off" required pattern="^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\.?$" <%= verified ? "" : "disabled" %>>
+  <button class="tw-btn tw-btn-primary" type="submit" <%= verified ? "" : "disabled" %>>Watch</button>
+</form>
+<% if (!verified) { %><p class="tw-fg-2" style="margin:-8px 0 16px;font-size:12px">Verify your email first: check your inbox for the link.</p><% } %>
+<p class="tw-fg-2 tw-mono" style="font-size:11px;margin:0 0 14px"><%= domains.length %> of <%= limit %> domains</p>
+
+<div class="tw-panel">
+  <table class="tw-table-min">
+    <thead><tr><th>Domain</th><th>Open sightings</th><th>Last watched</th><th>Next watch</th><th></th></tr></thead>
+    <tbody>
+    <% domains.forEach(function (d) { %>
+      <tr>
+        <td class="tw-mono"><a href="/domains/<%= d._id %>"><%= d.name %></a></td>
+        <td class="tw-num"><%= d.openSightings %></td>
+        <td class="tw-mono tw-fg-2"><%= d.lastWatchedAt ? new Date(d.lastWatchedAt).toISOString().slice(0, 16).replace("T", " ") : "not yet" %></td>
+        <td class="tw-mono tw-fg-2"><%= d.nextWatchAt ? new Date(d.nextWatchAt).toISOString().slice(0, 16).replace("T", " ") : "—" %></td>
+        <td style="text-align:right"><form method="post" action="/domains/<%= d._id %>/delete" style="margin:0" onsubmit="return confirm('Stop watching <%= d.name %> and delete its history?')"><button class="tw-btn tw-btn-ghost tw-btn-sm" type="submit">Remove</button></form></td>
+      </tr>
+    <% }); %>
+    <% if (domains.length === 0) { %><tr><td colspan="5" class="tw-empty">Nothing watched yet.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>

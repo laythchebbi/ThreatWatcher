@@ -1,7 +1,14 @@
 const logger = require("../logger");
 
 function notFound(req, res, _next) {
-  res.status(404).json({ error: "not_found", path: req.originalUrl });
+  if (req.accepts(["json", "html"]) === "html") {
+    return res.status(404).render("error", {
+      title: "Not found",
+      status: 404,
+      message: `No page at ${req.originalUrl}`,
+    });
+  }
+  return res.status(404).json({ error: "not_found", path: req.originalUrl });
 }
 
 function handler(err, req, res, next) {

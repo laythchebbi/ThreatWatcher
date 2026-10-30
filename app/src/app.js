@@ -9,9 +9,12 @@ const { env, isProd } = require("./config");
 const logger = require("./logger");
 const requestId = require("./middleware/request-id");
 const errors = require("./middleware/errors");
-const { readSession, requireAuth } = require("./middleware/session");
+const { readSession } = require("./middleware/session");
 const { originCheck } = require("./middleware/origin-check");
 const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const domainRoutes = require("./routes/domains");
+const { NAV } = require("./nav");
 
 /** Build the Express app. Only server.js calls listen(); tests listen on port 0. */
 function createApp() {
@@ -51,6 +54,7 @@ function createApp() {
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
+  app.locals.nav = NAV;
   app.use(readSession);
   app.use((req, res, next) => {
     res.locals.user = req.user;
@@ -58,10 +62,8 @@ function createApp() {
   });
   app.use(originCheck(env.BASE_URL));
   app.use(authRoutes);
-
-  // Placeholder until Task 5 renders the dashboard and /domains.
-  app.get("/", requireAuth, (_req, res) => res.render("placeholder", { title: "Dashboard" }));
-  app.get("/domains", requireAuth, (_req, res) => res.render("placeholder", { title: "Domains" }));
+  app.use(dashboardRoutes);
+  app.use("/domains", domainRoutes);
 
   app.use(errors.notFound);
   app.use(errors.handler);

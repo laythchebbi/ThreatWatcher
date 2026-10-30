@@ -815,3 +815,39 @@ h3 { font-size: 15px; }
 
 /* Short-form chip aliases used in some templates */
 .tw-chip-crit { background: var(--tw-critical-soft); color: var(--tw-critical); border-color: transparent; }
+
+/* ── v2 additions: Console shell pieces the v1 stylesheet did not have ── */
+.tw-nav-section { font-family: var(--tw-font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--tw-fg-3); padding: 14px 12px 4px; }
+.tw-nav-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-radius: var(--tw-radius); color: var(--tw-fg-1); text-decoration: none; font-size: 13px; }
+.tw-nav-item.active { background: var(--tw-bg-2); color: var(--tw-fg-0); }
+.tw-nav-item.disabled { color: var(--tw-fg-3); cursor: default; }
+.tw-nav-badge { font-family: var(--tw-font-mono); font-size: 9px; padding: 1px 6px; border-radius: 99px; background: var(--tw-bg-3); color: var(--tw-fg-2); }
+.tw-sidebar-foot { margin-top: auto; padding: 12px; border-top: 1px solid var(--tw-line); }
+.tw-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+@media (max-width: 900px) { .tw-stat-grid { grid-template-columns: 1fr; } }
+.tw-stat-card { background: var(--tw-bg-1); border: 1px solid var(--tw-line); border-radius: var(--tw-radius-lg); padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+.tw-stat-label { font-family: var(--tw-font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--tw-fg-2); }
+.tw-stat-value { font-size: 32px; font-weight: 500; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.tw-dash-row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+@media (max-width: 1100px) { .tw-dash-row { grid-template-columns: 1fr; } }
+.tw-panel { background: var(--tw-bg-1); border: 1px solid var(--tw-line); border-radius: var(--tw-radius-lg); min-width: 0; }
+.tw-panel-head { padding: 14px 16px; border-bottom: 1px solid var(--tw-line); display: flex; justify-content: space-between; align-items: center; }
+.tw-panel-body { padding: 6px 0; overflow-x: auto; }
+.tw-table-min { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tw-table-min th, .tw-table-min td { padding: 9px 12px; text-align: left; }
+.tw-table-min thead th { color: var(--tw-fg-2); font-family: var(--tw-font-mono); font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--tw-line); }
+.tw-table-min tbody tr { border-bottom: 1px solid var(--tw-line); }
+.tw-table-min tbody tr:last-child { border-bottom: 0; }
+.tw-sev-cell { width: 10px; padding-right: 0 !important; }
+.tw-sev { display: inline-block; width: 4px; height: 18px; border-radius: 2px; vertical-align: middle; }
+.tw-sev-low { background: var(--tw-fg-3); } .tw-sev-medium { background: var(--tw-info); } .tw-sev-high { background: var(--tw-warn); } .tw-sev-critical { background: var(--tw-critical); }
+.tw-monitor-list { display: flex; flex-direction: column; padding: 8px 0; }
+.tw-monitor-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--tw-line); }
+.tw-monitor-item:last-child { border-bottom: 0; }
+.tw-monitor-item .domain { font-family: var(--tw-font-mono); font-size: 13px; }
+.tw-monitor-item .sub { font-family: var(--tw-font-mono); font-size: 10px; color: var(--tw-fg-2); }
+.tw-scan-bar { display: flex; align-items: center; background: var(--tw-bg-1); border: 1px solid var(--tw-line); border-radius: var(--tw-radius-lg); padding: 6px; margin-bottom: 14px; }
+.tw-scan-bar input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--tw-fg-0); font-family: var(--tw-font-mono); font-size: 14px; padding: 10px 14px; min-width: 0; }
+.tw-empty { text-align: center; color: var(--tw-fg-3); padding: 24px; }
+.tw-banner { padding: 10px 14px; border-radius: var(--tw-radius); border: 1px solid; font-size: 13px; }
+.tw-banner-info { background: var(--tw-info-soft); color: var(--tw-info); border-color: var(--tw-info); }
