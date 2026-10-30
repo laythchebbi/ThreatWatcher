@@ -1,0 +1,9 @@
+{
+  "fuzzy_domains": [
+    { "domain": "acme-corp.com", "fuzzer": "original" },
+    { "domain": "acme-c0rp.com", "fuzzer": "homoglyph" },
+    { "domain": "acmecorp.com", "fuzzer": "omission" },
+    { "domain": "acme-corp.co", "fuzzer": "tld-swap" },
+    { "domain": "xn--acme-corp-9bc.com", "fuzzer": "homoglyph" }
+  ]
+}

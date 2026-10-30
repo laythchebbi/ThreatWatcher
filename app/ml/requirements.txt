@@ -1,0 +1,16 @@
+# Generated from requirements.in. Run pip-compile to refresh.
+beautifulsoup4==4.11.1
+certifi==2024.2.2
+charset-normalizer==3.3.2
+dnspython==2.6.1
+idna==3.7
+joblib==1.1.0
+numpy==1.22.2
+pymongo==4.6.3
+PySocks==1.7.1
+requests==2.31.0
+scikit-learn==0.22.1
+scipy==1.8.0
+soupsieve==2.4.1
+urllib3==2.2.1
+dnstwist==20250130
