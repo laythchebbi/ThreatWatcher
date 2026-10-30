@@ -125,16 +125,27 @@ which is what keeps the "same alert every cycle" anti-goal out.
 **Leak mentions** use the same pattern with a second collection:
 
 ```
-mentions      _id, domainId, source(darkweb|telegram|twitter|forum|paste),
-              sourceRef (page or post id), excerpt, matchedTerms[],
-              firstSeenAt, state(open|dismissed)
+mentions      _id, domainId, source(darkweb), sourceRef (page id),
+              excerpt, excerptHash, matchedTerms[], firstSeenAt,
+              state(open|dismissed), dismissedAtSeverity
 ```
 
-A new `mentions` row raises a `leak_mention` event (severity high; critical when
-the excerpt contains an `@<domain>` email address or the words password,
-credentials, combo, dump next to the brand). `domains` gains `terms[]`: the
-registrable label (`acme-corp`) plus any brand words the customer adds, so
-"ACME Corp" in a forum post is found even without the domain.
+A new `mentions` row raises a `leak_mention` event. `domains` gains `terms[]`:
+the registrable label (`acme-corp`, auto-derived) plus brand words the customer
+adds on `/domains/:id`, so "ACME Corp" in a forum post is found even without
+the domain. Matching is case-insensitive, whole-word, with `-` and space
+treated alike.
+
+Severity of a mention (my call after review): a match on a customer-added term
+or on the full domain name = high; a match only on the auto-derived label =
+medium, because short labels (`box`, `mail`) match everything; either becomes
+critical when, within 200 characters of the match, the excerpt holds an
+`@<domain>` address or one of password, credentials, combo, dump. The
+`source` enum holds only what has a fetcher; new values are added with their
+fetcher, not reserved.
+
+A dismissed mention re-raises only when its `excerptHash` changes on a later
+crawl (a growing thread), not when the page's timestamp or layout changes.
 
 **Dismissed and gone (my call after review).** Dismissing a sighting records
 `dismissedAtSeverity`. It stays silent while its severity is at or below that
@@ -182,14 +193,26 @@ An in-process scheduler (`setInterval` every minute, picks domains whose
    ≥ 0.6 marks `page_mimics_login`.
 5. **ML.** URL classifier label if the worker is up, else null.
    5b. **Leaks.** Search every leak source for the domain's `terms[]` and the
-   domain name itself, limited to items newer than the domain's
-   `lastWatchedAt` (so each post is considered once). Sources in v2: the
-   `darkweb_pages` the crawler fills, plus a `leakSources` list in code that
-   the builder can extend with one fetch-and-match function per source.
+   domain name itself, limited to pages crawled after the domain's
+   `lastWatchedAt` (first cycle: everything, as part of the baseline above,
+   so history is recorded but not alerted). Sources in v2: the
+   `darkweb_pages` the crawler fills, behind a `leakSources` list in code
+   that the builder extends with one fetch-and-match function per source.
    Telegram, Twitter and forum feeds need their own ingestion (API keys or
    scraping) and are **out of v2 scope beyond the interface**; the empty
    collections and their models are deleted until a feed exists. Matches
    become `mentions` rows and `leak_mention` events.
+
+   **Where the crawled pages come from (my call after review).** The crawler
+   reads `darkweb_sources`; nothing creates those rows today. v2 ships
+   `backend/data/darkweb-sources.json` (an empty list with the row format
+   documented) and `npm run seed:sources`, which upserts it. The operator
+   fills the file; there is no sources page. On a default install the leak
+   feature is honestly empty and the `/dark-web` page says "no leak sources
+   configured" with a pointer to the seed file. The crawler's `KEYWORDS` env
+   goes: matching now happens per domain in the watch step. The crawl timer
+   (hourly) bounds how fresh a mention can be.
+
 6. **Diff** against stored sightings → events. Set `nextWatchAt = now + 6 h`
    (`WATCH_INTERVAL_HOURS` env). A manual "Scan now" button just sets
    `nextWatchAt = now`.
