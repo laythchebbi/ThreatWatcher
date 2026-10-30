@@ -23,3 +23,5 @@ coverage/
 .cache/
 # Personal Claude Code settings (per-user, not shared)
 .claude/settings.local.json
+# brainstorming mockups (superpowers visual companion)
+.superpowers/
