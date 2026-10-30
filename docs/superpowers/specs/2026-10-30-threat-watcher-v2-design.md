@@ -263,6 +263,42 @@ timer; `nginx.conf` to one upstream.
 
 There are no production users. No data migration; the dev database is dropped.
 
+### 7.9 Rewrite, not refactor (owner: "redo and optimise")
+
+The new app is written fresh in `app/`. Ported as files, with their tests:
+`domain-similarity.js`, the ML bridge and `url_classifier.py`, the crawler and
+its timer, the config/logger/request-id/error-handler pattern, and the CSS
+tokens. Everything else is new code. `backend/` and `frontend/` are deleted
+once `app/` runs, in the same change, so the repo never holds two apps.
+
+**Clean code bar.** One job per module; a route file holds routes and nothing
+else, a service holds logic and touches no `req`/`res`. No wrapper layers,
+no factories with one product, no options nobody asked for. Every watch step
+is a pure function over plain objects so it is testable from fixtures without
+a database. Names say what things are (`sightings`, not `data`). Comments
+explain only what the code cannot show. Prettier, eslint and `checkJs` stay
+on; lint-staged keeps them on every commit.
+
+**Performance bar (measured, not hoped).**
+
+- Auth reads one session cookie; no database write per request. User lookup
+  is one indexed `_id` read.
+- Every page renders from one or two indexed queries. Indexes: `domains`
+  `{ userId }`, `{ nextWatchAt }`; `sightings` `{ domainId, state }`,
+  `{ domainId, lookalike }` unique; `events` `{ domainId, at }`, `{ at }`;
+  `mentions` `{ domainId, sourceRef }` unique; `alertChannels` `{ userId }`.
+- The dashboard feed is paginated at 100 events and stays under 100 ms of
+  server time with 50 000 events in the collection (fixture-seeded test).
+- The watch cycle bounds its fan-out: DNS 50 in flight, HTTP 8 in flight,
+  crt.sh one call per domain, all with timeouts; a domain with 1 000
+  candidates finishes in under 60 s on a laptop against recorded fixtures.
+- At most 3 domains watched concurrently; the scheduler never overlaps two
+  cycles of the same domain (`watchingSince` lock on the domain row).
+- Static assets served with long cache headers; responses gzipped; the
+  client script stays under 5 KB.
+
+Each of these is a line item in the implementation plan with its own check.
+
 ## 8. Left to the builder
 
 - Exact crt.sh query strategy and how to cap results for short labels.
@@ -276,16 +312,18 @@ There are no production users. No data migration; the dev database is dropped.
 
 ## 9. Plan of record (expected order, for the implementation plan)
 
-1. Collapse to one process with the existing pages still working (no auth
-   change yet) and delete `frontend/`.
-2. Replace WorkOS with self-hosted auth; delete WorkOS code and demo mode.
-3. Data model: domains, sightings, events; convert the scan into the watch
-   cycle; scheduler.
-4. Certificate transparency and HTTP enrichment.
-   4b. Leak mentions: `terms[]`, `mentions`, the crawler-pages source, the
-   `/dark-web` page.
-5. Alerts: email, then Slack and Teams.
-6. Console UI pass over the new pages.
-7. Deploy files and docs.
+1. Scaffold `app/`: config, logger, server, sessions, sign-up/sign-in, the
+   ported scoring and ML modules with their tests. Gates green on `app/`.
+2. Data model and indexes: domains, sightings, events, mentions,
+   alertChannels. Domain pages: add, list, detail.
+3. Watch cycle as pure steps with fixtures: permute, DNS, diff, scheduler,
+   baseline rule, dismiss/gone rules.
+4. Certificate transparency and HTTP enrichment, with the fan-out bounds.
+5. Leak mentions: `terms[]`, `mentions`, the crawler-pages source, seed
+   command, the `/dark-web` page.
+6. Alerts: email, then Slack and Teams; baseline summary message.
+7. Console UI pass over every page; client script under 5 KB.
+8. Performance checks from 7.9 as tests; delete `backend/` and `frontend/`;
+   deploy files and docs.
 
 Each step leaves the gates green and the app runnable.
