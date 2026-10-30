@@ -15,6 +15,13 @@ declare global {
         timezone?: string;
         [key: string]: unknown;
       } | null;
+      /** The caller's Domain document, set by routes/domains.js loadDomain. */
+      domain?: {
+        _id: Types.ObjectId;
+        userId: Types.ObjectId;
+        name: string;
+        [key: string]: unknown;
+      };
       /** iron-session for this request (middleware/session.js). */
       session?: {
         userId?: string;
