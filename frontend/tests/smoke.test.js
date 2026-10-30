@@ -95,6 +95,8 @@ test("safeNext only accepts same-site paths", () => {
   assert.equal(safeNext("/reports?limit=5"), "/reports?limit=5");
   assert.equal(safeNext("https://evil.example/"), "/dashboard");
   assert.equal(safeNext("//evil.example"), "/dashboard");
+  assert.equal(safeNext("/\\evil.example"), "/dashboard");
+  assert.equal(safeNext("/\\/evil.example"), "/dashboard");
   assert.equal(safeNext(undefined), "/dashboard");
   assert.equal(safeNext(["/a", "/b"]), "/dashboard");
 });

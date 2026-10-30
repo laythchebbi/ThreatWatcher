@@ -79,7 +79,8 @@ async function readSession(req, res, next) {
  * an open redirect usable for phishing.
  */
 function safeNext(value) {
-  return typeof value === "string" && /^\/(?!\/)/.test(value) ? value : "/dashboard";
+  // Backslash too: browsers normalise "/\evil" to "//evil".
+  return typeof value === "string" && /^\/(?![/\\])/.test(value) ? value : "/dashboard";
 }
 
 function requireAuth(req, res, next) {

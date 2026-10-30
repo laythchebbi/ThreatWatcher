@@ -1,4 +1,5 @@
 const dns = require("node:dns/promises");
+const logger = require("../logger");
 
 /**
  * Generate fuzzy-similar domains via the dnstwister.report API.
@@ -34,6 +35,9 @@ async function filterRegistered(domainList) {
       }
     })
   );
+  if (domainList.length && !out.length) {
+    logger.warn({ candidates: domainList.length }, "no candidate resolved; is DNS reachable?");
+  }
   return out;
 }
 

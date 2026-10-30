@@ -4,7 +4,8 @@ function notFound(req, res, _next) {
   res.status(404).json({ error: "not_found", path: req.originalUrl });
 }
 
-function handler(err, req, res, _next) {
+function handler(err, req, res, next) {
+  if (res.headersSent) return next(err);
   if (err.issues) {
     return res.status(400).json({ error: "validation", issues: err.issues });
   }
