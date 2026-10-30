@@ -17,6 +17,7 @@ const {
   requireRole,
   refreshSession,
   decodeClaims,
+  safeNext,
 } = require("./middleware/session");
 const errors = require("./middleware/errors");
 const backend = require("./services/backend-client");
@@ -100,10 +101,7 @@ app.get("/auth/sign-in", async (req, res, next) => {
   try {
     const session = await getSession(req, res);
     const state = crypto.randomBytes(16).toString("hex");
-    session.oauth = {
-      state,
-      next: typeof req.query.next === "string" ? req.query.next : "/dashboard",
-    };
+    session.oauth = { state, next: safeNext(req.query.next) };
     await session.save();
     const url = workosService.authorizationUrl({ state });
     res.redirect(url);
@@ -153,7 +151,7 @@ app.get("/auth/callback", async (req, res) => {
     }
 
     const out = await workosService.authenticateWithCode(code);
-    const nextUrl = session.oauth.next || "/dashboard";
+    const nextUrl = safeNext(session.oauth.next);
 
     // Inline org + role claims so `req.user.role` works for guards on this
     // app without round-tripping the backend. Real authorization is still
@@ -421,9 +419,6 @@ app.put("/api/me/monitored", (req, res) =>
 // Admin endpoints — frontend just forwards; backend enforces requireRole("admin").
 app.get("/api/admin/users", requireRole("admin"), (req, res) =>
   proxy(req, res, { method: "GET", path: "/api/users" })
-);
-app.patch("/api/admin/users/:id/role", requireRole("admin"), (req, res) =>
-  proxy(req, res, { method: "PATCH", path: `/api/users/${encodeURIComponent(req.params.id)}/role` })
 );
 app.post("/api/admin/users/:id/deactivate", requireRole("admin"), (req, res) =>
   proxy(req, res, {

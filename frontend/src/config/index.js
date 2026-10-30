@@ -18,10 +18,12 @@ const schema = z.object({
 
   SESSION_COOKIE_NAME: z.string().min(1).default("tw_session"),
   SESSION_PASSWORD: z.string().min(32, "SESSION_PASSWORD must be at least 32 chars"),
+  // zod 4: `.default()` short-circuits the transform, so it must be the
+  // output type (boolean), not the raw env string.
   SESSION_COOKIE_SECURE: z
     .union([z.literal("true"), z.literal("false")])
     .transform((v) => v === "true")
-    .default("false"),
+    .default(false),
 
   LOG_FILE: z.string().optional(),
 

@@ -94,7 +94,7 @@ router.post("/scan/:domain", validate(searchDomainParams, "params"), async (req,
       confidence: 0.85,
       findings: { lookalikes: scored.length },
       reportContent: { scored },
-      createdBy: req.auth?.sub,
+      createdBy: req.user._id,
     });
 
     return res.status(201).json({ report });

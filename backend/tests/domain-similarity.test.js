@@ -38,20 +38,21 @@ test("isSubstringMatch: matches by first label", () => {
   assert.equal(sim.isSubstringMatch("example.com", "completely.different"), false);
 });
 
-test("secureScore: bounded 0..1 and reasonable shape", () => {
-  const min = sim.secureScore({
+test("secureScore: bounded 0..1, higher is safer", () => {
+  const clean = sim.secureScore({
     activeServer: false,
     substring: false,
     idn: false,
     visualSimilarity: 0,
   });
-  const max = sim.secureScore({
+  const worst = sim.secureScore({
     activeServer: true,
     substring: true,
     idn: true,
     visualSimilarity: 1,
   });
-  assert.ok(min >= 0 && min <= 1);
-  assert.ok(max >= 0 && max <= 1);
-  assert.ok(max > min, "more signals → higher score");
+  assert.equal(clean, 1);
+  assert.ok(worst >= 0 && worst <= 1);
+  assert.ok(worst < 0.4, "all signals → red zone (< 0.4)");
+  assert.ok(clean >= 0.7, "no signals → green zone (>= 0.7)");
 });

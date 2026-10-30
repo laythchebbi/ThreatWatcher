@@ -28,7 +28,7 @@ and holds app-specific fields (`monitoredDomains`, `role`, `deactivatedAt`).
 npm install            # installs BOTH workspaces (one root lockfile)
 npm run lint           # eslint, both apps
 npm run typecheck      # tsc --checkJs, both apps
-npm test               # node --test, 31 tests
+npm test               # node --test, 32 tests
 npm run format         # prettier (JS/JSON/MD/CSS only — NOT .ejs)
 npm audit              # must stay at 0 vulnerabilities
 ```
@@ -84,11 +84,15 @@ amber DEMO banner). Live scans still use the real `domain-similarity` engine.
   workspace links are empty dirs. Always
   `rm -rf node_modules package-lock.json && npm install` after moving the
   checkout.
-- **`npm ls qs` and `npm ls --all` exit 1 on this repo by design.** The root
-  `overrides.qs` pin (6.16.0) deliberately exceeds express's declared `~6.15.1`
-  range, so a full-depth `npm ls` reports qs as "invalid" (ELSPROBLEMS). Plain
-  `npm ls` exits 0. CI never runs `npm ls`; `npm ci`, `npm install`, and
-  `npm audit` are unaffected. Don't chase it.
+- **zod 4 `.default()` short-circuits.** When the input is `undefined`, zod 4
+  returns the default as-is and skips the schema's `.transform()`, so the
+  default must be the _output_ type (`.default(false)`, not `.default("false")`).
+  Bumped 3→4 on 2026-10-30 for GHSA-mrhx-c7xc-m3w5; `tsc` catches the type
+  mismatch, the frontend smoke test asserts `SESSION_COOKIE_SECURE === false`.
+- **Audit advisories drift.** The 2026-09-05 "0 vulnerabilities" state went to
+  1 critical + 6 high by 2026-10-30 with no code change. Re-run `npm audit`
+  before claiming the gate is green; the `qs` override must stay inside
+  express's declared range or `npm ls` reports ELSPROBLEMS.
 
 ## Status
 
@@ -99,6 +103,6 @@ script removed, docs re-synced with the real routes. CI
 (`.github/workflows/ci.yml`) runs on push; **no git remote yet**. Not yet
 booted against live MongoDB/WorkOS — that's the only end-to-end gap.
 
-Next candidates: push to a remote; M4 ML retrain (`train_url_classifier.py` +
+Next candidates: rotate the SECURITY.md credentials, then push to a remote; M4 ML retrain (`train_url_classifier.py` +
 `export_onnx.py`, data in the archive); decide on the pending majors
 (express 5, mongoose 9, `@workos-inc/node` 10) before building new features.

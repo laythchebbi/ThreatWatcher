@@ -108,7 +108,7 @@ Backend (`:3000`). Every `/auth/*` and `/api/*` route requires a WorkOS access t
 - `GET  /auth/me`
 - `GET  /auth/invitations`, `POST /auth/invitations` `{email, role, expiresInDays}`, `DELETE /auth/invitations/:id` — _admin_
 - `GET  /api/users/me`, `PATCH /api/users/me`, `PUT /api/users/me/monitored`
-- `GET  /api/users`, `PATCH /api/users/:id/role`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate` — _admin_
+- `GET  /api/users`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate` — _admin_ (roles come from WorkOS: set them on the invitation or in the WorkOS dashboard)
 - `GET  /api/domains/search/:domain`
 - `POST /api/domains/scan/:domain` (writes a `Report`)
 - `GET  /api/domains/daily/:domain`, `GET /api/domains/registered/:domain`
@@ -119,7 +119,7 @@ Frontend (`:4000`). Pages are server-rendered (see "UI routes" below). Browser-s
 
 - `GET  /api/reports`, `GET /api/reports/:id`, `GET /api/dataleak`
 - `GET  /api/me`, `PATCH /api/me`, `PUT /api/me/monitored`
-- `GET  /api/admin/users`, `PATCH /api/admin/users/:id/role`, `POST /api/admin/users/:id/deactivate` — _admin_
+- `GET  /api/admin/users`, `POST /api/admin/users/:id/deactivate` — _admin_
 - `GET  /api/admin/invitations`, `POST /api/admin/invitations`, `DELETE /api/admin/invitations/:id` — _admin_
 
 ## Scheduled jobs

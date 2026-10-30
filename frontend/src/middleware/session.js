@@ -73,6 +73,15 @@ async function readSession(req, res, next) {
   }
 }
 
+/**
+ * Only allow a same-site path as the post-login redirect target. Anything
+ * else (absolute URL, protocol-relative `//host`) would make /auth/sign-in
+ * an open redirect usable for phishing.
+ */
+function safeNext(value) {
+  return typeof value === "string" && /^\/(?!\/)/.test(value) ? value : "/dashboard";
+}
+
 function requireAuth(req, res, next) {
   if (!req.user) {
     if (req.accepts("html"))
@@ -123,4 +132,5 @@ module.exports = {
   requireRole,
   refreshSession,
   decodeClaims,
+  safeNext,
 };

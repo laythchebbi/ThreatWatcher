@@ -14,10 +14,6 @@ const monitoredUpdate = z.object({
   monitoredDomains: z.array(domainName).max(200),
 });
 
-const roleChange = z.object({
-  role: z.enum(["analyst", "admin"]),
-});
-
 router.get("/me", (req, res) => {
   res.json({ user: req.user });
 });
@@ -50,20 +46,6 @@ router.get("/", requireRole("admin"), async (_req, res, next) => {
   try {
     const items = await User.find({}).sort({ createdAt: -1 }).limit(500);
     return res.json({ count: items.length, items });
-  } catch (err) {
-    return next(err);
-  }
-});
-
-router.patch("/:id/role", requireRole("admin"), validate(roleChange), async (req, res, next) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { role: req.body.role },
-      { new: true }
-    );
-    if (!user) return res.status(404).json({ error: "not_found" });
-    return res.json({ user });
   } catch (err) {
     return next(err);
   }

@@ -65,8 +65,9 @@ async function compareTwoPages(urlA, urlB) {
 }
 
 /**
- * SecureScore composite. Aggregates four signals into a 0..1 score.
- * Mirrors the legacy weighting (active server, substring, IDN, visual sim).
+ * SecureScore composite: 0..1 where HIGHER means SAFER (1 = no threat
+ * signals). The UI colours >= 0.7 green and < 0.4 red. Threat points use
+ * the legacy weighting (active server, substring, IDN, visual sim).
  */
 function secureScore({ activeServer, substring, idn, visualSimilarity }) {
   let pts = 0;
@@ -75,7 +76,7 @@ function secureScore({ activeServer, substring, idn, visualSimilarity }) {
   if (substring) pts += 0.7;
   if (idn) pts += 0.7;
   if (typeof visualSimilarity === "number") pts += Math.min(1, visualSimilarity) * 0.7;
-  return Number((pts / max + 0.2).toFixed(4));
+  return Number((1 - pts / max).toFixed(4));
 }
 
 module.exports = { scoreDomains, isSubstringMatch, isPunycode, compareTwoPages, secureScore };

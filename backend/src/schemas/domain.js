@@ -24,7 +24,7 @@ const searchDomainParams = z.object({
 
 const dataleakQuery = z.object({
   q: z.string().trim().min(2, "query too short").max(200, "query too long"),
-  source: z.enum(["telegram", "twitter", "forum", "all"]).default("all"),
+  source: z.enum(["telegram", "twitter", "forum", "darkweb", "all"]).default("all"),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
 

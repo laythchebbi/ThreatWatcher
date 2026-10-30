@@ -16,6 +16,11 @@ test("frontend config loads with required env", () => {
   assert.ok(env.WORKOS_API_KEY.startsWith("sk_"));
   assert.ok(env.WORKOS_CLIENT_ID.startsWith("client_"));
   assert.ok(env.SESSION_PASSWORD.length >= 32);
+  assert.equal(
+    env.SESSION_COOKIE_SECURE,
+    false,
+    "unset SESSION_COOKIE_SECURE parses to boolean false"
+  );
 });
 
 test("session middleware exposes requireAuth and requireRole guards", () => {
@@ -82,4 +87,14 @@ test("decodeClaims pulls payload from a JWT-shaped string without verification",
   assert.deepEqual(decodeClaims(""), {});
   assert.deepEqual(decodeClaims("not-a-jwt"), {});
   assert.deepEqual(decodeClaims(null), {});
+});
+
+test("safeNext only accepts same-site paths", () => {
+  const { safeNext } = require("../src/middleware/session");
+  assert.equal(safeNext("/settings#security"), "/settings#security");
+  assert.equal(safeNext("/reports?limit=5"), "/reports?limit=5");
+  assert.equal(safeNext("https://evil.example/"), "/dashboard");
+  assert.equal(safeNext("//evil.example"), "/dashboard");
+  assert.equal(safeNext(undefined), "/dashboard");
+  assert.equal(safeNext(["/a", "/b"]), "/dashboard");
 });

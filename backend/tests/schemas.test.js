@@ -31,6 +31,7 @@ test("domain schema rejects garbage", () => {
 
 test("dataleak query enforces limit and source enum", () => {
   assert.equal(dataleakQuery.safeParse({ q: "hi", source: "all", limit: "10" }).success, true);
+  assert.equal(dataleakQuery.safeParse({ q: "hi", source: "darkweb" }).success, true, "darkweb");
   assert.equal(dataleakQuery.safeParse({ q: "h" }).success, false, "too short");
   assert.equal(
     dataleakQuery.safeParse({ q: "hi", source: "imap" }).success,
