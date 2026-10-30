@@ -89,13 +89,81 @@ router.post("/:id/delete", loadDomain, async (req, res, next) => {
   }
 });
 
-// Task 11 renders the real page; until then show the stub.
-router.get("/:id", loadDomain, (req, res) =>
-  res.render("placeholder", {
-    title: req.domain.name,
-    active: "domains",
-    crumbs: ["Watch", "Domains", req.domain.name],
-  })
+const WEEK_MS = 7 * 24 * 3600_000;
+
+/** New / Watched / Changed / Inactive / Ignored, per spec 7.6. */
+function tabOf(sighting, changedIds, now) {
+  if (sighting.state === "ignored") return "ignored";
+  if (sighting.inactive) return "inactive";
+  if (changedIds.has(String(sighting._id))) return "changed";
+  if (now - new Date(sighting.firstSeenAt).getTime() < WEEK_MS) return "new";
+  return "watched";
+}
+
+router.get("/:id", loadDomain, async (req, res, next) => {
+  try {
+    const domainId = req.domain._id;
+    const now = Date.now();
+    const [events, sightings, changed] = await Promise.all([
+      Event.find({ domainId }).sort({ at: -1 }).limit(100).lean(),
+      Sighting.find({ domainId }).sort({ severity: -1, lastSeenAt: -1 }).lean(),
+      Event.distinct("sightingId", {
+        domainId,
+        kind: "infra_changed",
+        at: { $gte: new Date(now - WEEK_MS) },
+      }),
+    ]);
+    const changedIds = new Set(changed.map(String));
+    const tabs = { new: [], watched: [], changed: [], inactive: [], ignored: [] };
+    for (const s of sightings) tabs[tabOf(s, changedIds, now)].push(s);
+    res.render("domain", {
+      title: req.domain.name,
+      active: "domains",
+      crumbs: ["Watch", "Domains", req.domain.name],
+      domain: req.domain,
+      events,
+      tabs,
+      counts: Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.length])),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/:id/scan", loadDomain, async (req, res, next) => {
+  try {
+    await Domain.updateOne(
+      { _id: req.domain._id },
+      { $set: { nextWatchAt: new Date(), watchingSince: null } }
+    );
+    return res.redirect(`/domains/${req.domain._id}`);
+  } catch (err) {
+    return next(err);
+  }
+});
+
+const TRANSITIONS = {
+  dismiss: (s) => ({ state: "dismissed", dismissedAtSeverity: s.severity }),
+  ignore: () => ({ state: "ignored" }),
+  reopen: () => ({ state: "open" }),
+};
+
+router.post(
+  "/:id/sightings/:sid/:action(dismiss|ignore|reopen)",
+  loadDomain,
+  async (req, res, next) => {
+    try {
+      const sighting = await Sighting.findOne({ _id: req.params.sid, domainId: req.domain._id });
+      if (!sighting) return res.status(404).json({ error: "not_found" });
+      const patch = TRANSITIONS[req.params.action](sighting);
+      await Sighting.updateOne({ _id: sighting._id }, { $set: patch });
+      if (req.accepts(["json", "html"]) === "html")
+        return res.redirect(`/domains/${req.domain._id}`);
+      return res.json({ ok: true, state: patch.state });
+    } catch (err) {
+      return next(err);
+    }
+  }
 );
 
 module.exports = router;
