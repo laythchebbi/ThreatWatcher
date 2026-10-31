@@ -54,17 +54,9 @@ router.post("/signup", perIp(5, 60 * 60 * 1000), async (req, res, next) => {
   }
   try {
     const user = await auth.signup(parsed.data);
+    if (!user) return res.redirect("/domains"); // same shape as success; the owner got a mail
     return establish(req, res, user, "/domains");
   } catch (err) {
-    if (err.code === "email_taken") {
-      return res.status(200).render("auth/signup", {
-        layout: false,
-        title: "Sign up",
-        error: GENERIC_LOGIN,
-        message: null,
-        next: "",
-      });
-    }
     return next(err);
   }
 });

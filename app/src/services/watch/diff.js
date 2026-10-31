@@ -58,6 +58,7 @@ function diffDomain({ domain, previous, observed, candidates, lists, now, baseli
 
     if (dns) {
       next.lastSeenAt = now;
+      next.dnsMisses = 0; // misses must be consecutive to count
       next.infra = classifyInfra(dns, lists);
       if (!prev) {
         kinds.push("new_lookalike", "dns_live");

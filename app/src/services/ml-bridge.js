@@ -47,6 +47,8 @@ class Worker {
           rej(new Error(`ml worker ${this.name} exited`));
         }
         this.pending.clear();
+        if (!this.everReady)
+          reject(new Error(`ml worker ${this.name} exited before ready (code ${code})`));
         // Only restart a worker that once worked; one that never became ready
         // (missing model, broken venv) would just loop forever at 30s.
         if (!this.shutdown && this.everReady) {
@@ -151,4 +153,4 @@ function readiness() {
   return Object.fromEntries(Object.entries(workers).map(([k, w]) => [k, w.ready]));
 }
 
-module.exports = { start, stop, classifyUrl, permute, readiness };
+module.exports = { start, stop, classifyUrl, permute, readiness, Worker };

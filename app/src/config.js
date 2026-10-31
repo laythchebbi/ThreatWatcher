@@ -20,6 +20,13 @@ const schema = z.object({
   MAX_DOMAINS_PER_ACCOUNT: z.coerce.number().int().positive().default(5),
 
   SMTP_URL: z.string().optional(),
+  // Express "trust proxy": false (direct), "loopback" (nginx on the same host), a hop count, or a CIDR.
+  TRUST_PROXY: z
+    .string()
+    .default("false")
+    .transform((v) =>
+      v === "true" ? true : v === "false" ? false : /^\d+$/.test(v) ? Number(v) : v
+    ),
   LOG_FILE: z.string().optional(),
 });
 

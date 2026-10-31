@@ -29,7 +29,6 @@ async function runCycle(
 ) {
   const result = { events: 0, sightings: 0, source: "previous" };
   const update = { lastWatchedAt: now, nextWatchAt: nextWatchAt(now, random), watchingSince: null };
-  if (!domain.baselineDoneAt) update.baselineDoneAt = now;
   const baseline = !domain.baselineDoneAt;
 
   try {
@@ -94,6 +93,10 @@ async function runCycle(
     }
     result.events = events.length;
     result.sightings = upserts.length;
+    // The baseline ends only when a cycle completed with a real permutation list;
+    // combosquats alone (worker and API both down, nothing stored) are not one.
+    const hadPermutations = source !== "previous" || (domain.lastPermutation || []).length > 0;
+    if (baseline && hadPermutations) update.baselineDoneAt = now;
     logger.info({ domain: domain.name, ...result, baseline }, "watch cycle done");
   } catch (err) {
     logger.error({ err, domain: domain.name }, "watch cycle failed");

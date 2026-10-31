@@ -123,3 +123,29 @@ test("when permutations come from the stored list, lastPermutation is not overwr
   assert.equal(out.source, "previous");
   assert.deepEqual((await Domain.findById(domain._id)).lastPermutation, ["acme-c0rp.com"]);
 });
+
+test("a cycle that produced nothing does not end the baseline", async (t) => {
+  const { Domain, domain } = await seed(t);
+  const failing = {
+    permute: async () => {
+      throw new Error("down");
+    },
+  };
+  await runCycle(domain, deps({ worker: failing }));
+  assert.equal(
+    (await Domain.findById(domain._id)).baselineDoneAt,
+    null,
+    "worker + api down, nothing stored: still baseline"
+  );
+  const broken = {
+    resolve4: async () => {
+      throw new Error("resolver exploded");
+    },
+    resolveMx: async () => [],
+    resolveNs: async () => [],
+  };
+  await runCycle(await Domain.findById(domain._id), deps({ resolver: broken }));
+  const d = await Domain.findById(domain._id);
+  assert.ok(d.lastPermutation.length > 0, "permutations were stored");
+  assert.ok(d.baselineDoneAt, "a completed cycle (even with nothing resolving) ends the baseline");
+});

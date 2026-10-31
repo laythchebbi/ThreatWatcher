@@ -88,3 +88,21 @@ test("verify link marks the account verified once", async (t) => {
   const again = await fetchWithCookies(`/verify/${token}`);
   assert.equal(again.status, 400);
 });
+
+test("signup with a taken email looks exactly like a fresh signup and warns the owner", async (t) => {
+  await withDb(t);
+  const { post, fetchWithCookies } = await startApp(t);
+  const fresh = await post("/signup", { email: "taken@example.com", password: PW });
+  fetchWithCookies.jar.clear();
+  mailer._reset();
+  const again = await post("/signup", {
+    email: "taken@example.com",
+    password: "another password here",
+  });
+  assert.equal(again.status, fresh.status);
+  assert.equal(again.headers.get("location"), fresh.headers.get("location"));
+  assert.equal(fetchWithCookies.jar.has("tw_session"), false, "no session for the impostor");
+  assert.equal(mailer.outbox.length, 1);
+  assert.equal(mailer.outbox[0].to, "taken@example.com");
+  assert.match(mailer.outbox[0].text, /already has an account/i);
+});

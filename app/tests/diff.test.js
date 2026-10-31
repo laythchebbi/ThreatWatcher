@@ -215,3 +215,22 @@ test("baseline cycle tags events and sightings", () => {
   assert.ok(events.every((e) => e.payload.baseline === true));
   assert.equal(upserts[0].baseline, true);
 });
+
+test("gone needs two CONSECUTIVE misses: miss, hit, miss stays active", () => {
+  const afterMiss = prevSighting({ dnsMisses: 1 });
+  const hit = diffDomain({
+    ...base,
+    previous: [afterMiss],
+    candidates: ["acme-c0rp.com"],
+    observed: obs({ "acme-c0rp.com": live() }),
+  });
+  assert.equal(hit.upserts[0].dnsMisses, 0, "a hit resets the miss counter");
+  const missAgain = diffDomain({
+    ...base,
+    previous: [hit.upserts[0]],
+    candidates: ["acme-c0rp.com"],
+    observed: obs({}),
+  });
+  assert.deepEqual(kinds(missAgain.events), []);
+  assert.equal(missAgain.upserts[0].inactive, false);
+});

@@ -27,8 +27,10 @@ npm -w app start                    # → http://localhost:3000
 Another project on this Mac tends to hold port 3000; run with `PORT=3100` and
 `BASE_URL=http://localhost:3100` when it does.
 
-Without `SMTP_URL`, verification and reset emails are logged instead of sent;
-copy the link out of the log. Add a domain, press **Scan now** or wait for the
+Until Plan 3 adds the SMTP transport, verification and reset emails are
+logged instead of sent (full text at `info` outside production); copy the
+link out of the log. Behind nginx set `TRUST_PROXY=loopback` so the per-IP
+rate limits see real client addresses. Add a domain, press **Scan now** or wait for the
 minute tick, and the first watch cycle (the baseline) fills the domain page.
 
 ## Tests

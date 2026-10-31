@@ -1,7 +1,6 @@
 const crypto = require("node:crypto");
 const { env } = require("../config");
 const User = require("../models/user");
-const HttpError = require("../lib/http-error");
 const mailer = require("../lib/mailer");
 const { hashPassword, verifyPassword, DUMMY_HASH } = require("./password");
 
@@ -23,10 +22,21 @@ function hashToken(token) {
   return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
 
+/**
+ * Create the account, or, when the address already has one, warn its owner
+ * and return null so the response cannot reveal which addresses exist.
+ */
 async function signup({ email, password }) {
   const normalised = normaliseEmail(email);
   const existing = await User.findOne({ email: normalised });
-  if (existing) throw new HttpError("email_taken", { status: 409, code: "email_taken" });
+  if (existing) {
+    await mailer.send({
+      to: existing.email,
+      subject: "Someone tried to sign up with your Threat Watcher email",
+      text: `This address already has an account. If that was you, sign in at ${env.BASE_URL}/login or reset your password at ${env.BASE_URL}/forgot. Otherwise you can ignore this.`,
+    });
+    return null;
+  }
   const user = await User.create({ email: normalised, passwordHash: await hashPassword(password) });
   await startVerify(user);
   return user;
