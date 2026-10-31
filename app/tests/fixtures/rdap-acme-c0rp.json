@@ -1,0 +1,29 @@
+{
+  "objectClassName": "domain",
+  "ldhName": "ACME-C0RP.COM",
+  "events": [
+    { "eventAction": "registration", "eventDate": "2026-10-21T14:05:00Z" },
+    { "eventAction": "expiration", "eventDate": "2027-10-21T14:05:00Z" },
+    { "eventAction": "last changed", "eventDate": "2026-10-21T14:06:00Z" }
+  ],
+  "entities": [
+    {
+      "objectClassName": "entity",
+      "handle": "1068",
+      "roles": ["registrar"],
+      "vcardArray": [
+        "vcard",
+        [
+          ["version", {}, "text", "4.0"],
+          ["fn", {}, "text", "NameCheap, Inc."]
+        ]
+      ],
+      "publicIds": [{ "type": "IANA Registrar ID", "identifier": "1068" }]
+    }
+  ],
+  "nameservers": [
+    { "objectClassName": "nameserver", "ldhName": "DNS1.REGISTRAR-SERVERS.COM" },
+    { "objectClassName": "nameserver", "ldhName": "DNS2.REGISTRAR-SERVERS.COM" }
+  ],
+  "status": ["client transfer prohibited"]
+}

@@ -11,6 +11,7 @@ const domainSchema = new Schema(
     watchingSince: { type: Date, default: null },
     lastPermutation: [{ type: String }],
     certCursor: { type: String, default: null },
+    ownRdap: { registrar: String, ns: [{ type: String }], fetchedAt: Date },
     baselineDoneAt: { type: Date, default: null },
   },
   { timestamps: true, collection: "domains" }

@@ -24,7 +24,13 @@ const sightingSchema = new Schema(
       parked: { type: Boolean, default: false },
       cdn: { type: Boolean, default: false },
     },
-    rdap: { registeredAt: Date, registrar: String, ns: [{ type: String }] },
+    rdap: {
+      registeredAt: Date,
+      registrar: String,
+      ns: [{ type: String }],
+      defensive: { type: Boolean, default: false },
+      fetchedAt: Date,
+    },
     cert: {
       firstIssuedAt: Date,
       issuer: String,
