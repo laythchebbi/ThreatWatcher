@@ -112,6 +112,10 @@ amber DEMO banner). Live scans still use the real `domain-similarity` engine.
   eslint and ejs→jake→filelist; every minimatch < 11.0.1 is affected and the
   consumers pin 3.x/5.x, so there is no non-breaking fix. CI gates at `high`, so
   it does not fail builds. Re-check `npm audit` when eslint or ejs release.
+- **undici 8 needs Node >= 22.19.** CI ran Node 20 until 2026-10-31 and every test that
+  loads `http.js` died at require time (`createZstdDecompress` is undefined on 20). CI and
+  `app/package.json` `engines` now say 22. Also: the bucket's poll timers are `unref()`'d,
+  so a test that awaits a refilling `take()` must hold a ref'd timer or the loop drains.
 - **Audit advisories drift.** The 2026-09-05 "0 vulnerabilities" state went to
   1 critical + 6 high by 2026-10-30 with no code change. Re-run `npm audit`
   before claiming the gate is green; the `qs` override must stay inside

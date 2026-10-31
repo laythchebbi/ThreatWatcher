@@ -18,7 +18,9 @@ test("bucket allows perMinute calls then waits for refill", async () => {
   await new Promise((r) => setTimeout(r, 20));
   assert.equal(third, false, "no token left");
   t += 30_000; // half a minute → one token refilled
+  const keep = setInterval(() => {}, 100); // the bucket's own poll timer is unref'd
   await p;
+  clearInterval(keep);
   assert.equal(third, true);
 });
 
@@ -32,7 +34,9 @@ test("bucket capacity never exceeds perMinute", async () => {
   await new Promise((r) => setTimeout(r, 20));
   assert.equal(fourth, false);
   t += 20_000;
+  const keep = setInterval(() => {}, 100);
   await p;
+  clearInterval(keep);
 });
 
 test("cache forgets after ttl", () => {

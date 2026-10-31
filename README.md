@@ -41,7 +41,7 @@ a lookalike domain, or start a new scan.
 
 ## 3 Requirements
 
-- Node.js 20 or newer
+- Node.js 22.19 or newer
 - npm (installed with Node.js)
 - Python 3.9 or newer
 - MongoDB 7
