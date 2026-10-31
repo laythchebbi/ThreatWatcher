@@ -55,7 +55,9 @@ async function guardHost(host, { resolver, allowPrivate }) {
  * Host keep the real hostname.
  */
 function makePinnedDispatcher(address, family) {
-  const lookup = (_hostname, _opts, cb) => cb(null, address, family);
+  // net.connect calls lookup with { all: true } under autoSelectFamily and expects an array.
+  const lookup = (_hostname, opts, cb) =>
+    opts && opts.all ? cb(null, [{ address, family }]) : cb(null, address, family);
   const agent = new Agent({ connect: { lookup, timeout: TIMEOUT_MS } });
   // exposed for tests
   /** @type {any} */ (agent).lookup = lookup;
