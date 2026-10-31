@@ -10,6 +10,7 @@ const domainSchema = new Schema(
     nextWatchAt: { type: Date, default: Date.now },
     watchingSince: { type: Date, default: null },
     lastPermutation: [{ type: String }],
+    certCursor: { type: String, default: null },
     baselineDoneAt: { type: Date, default: null },
   },
   { timestamps: true, collection: "domains" }

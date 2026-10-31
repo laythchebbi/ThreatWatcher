@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name_value": "acme-corp-secure.net\nwww.acme-corp-secure.net",
+    "not_before": "2026-10-25T10:00:00",
+    "issuer_name": "C=US, O=Let's Encrypt, CN=R11"
+  },
+  {
+    "id": 2,
+    "name_value": "totally-unrelated.io",
+    "not_before": "2026-10-25T10:00:00",
+    "issuer_name": "C=US, O=Let's Encrypt, CN=R11"
+  },
+  {
+    "id": 3,
+    "name_value": "acme-corp.com",
+    "not_before": "2026-01-01T00:00:00",
+    "issuer_name": "C=US, O=Let's Encrypt, CN=R11"
+  }
+]

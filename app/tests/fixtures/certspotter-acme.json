@@ -1,0 +1,34 @@
+[
+  {
+    "id": "9001",
+    "tbs_sha256": "aaa111",
+    "dns_names": ["acme-corp-login.example", "www.acme-corp-login.example"],
+    "not_before": "2026-10-20T00:00:00Z",
+    "not_after": "2027-01-18T00:00:00Z",
+    "issuer": { "friendly_name": "Let's Encrypt" }
+  },
+  {
+    "id": "9002",
+    "tbs_sha256": "bbb222",
+    "dns_names": ["*.acme-c0rp.com", "acme-c0rp.com"],
+    "not_before": "2026-10-28T00:00:00Z",
+    "not_after": "2027-01-26T00:00:00Z",
+    "issuer": { "friendly_name": "ZeroSSL" }
+  },
+  {
+    "id": "9003",
+    "tbs_sha256": "ccc333",
+    "dns_names": ["acme-c0rp.com"],
+    "not_before": "2026-08-01T00:00:00Z",
+    "not_after": "2026-10-30T00:00:00Z",
+    "issuer": { "friendly_name": "ZeroSSL" }
+  },
+  {
+    "id": "9004",
+    "tbs_sha256": "ddd444",
+    "dns_names": ["unrelated.org", "mail.acme-corp.com"],
+    "not_before": "2026-10-01T00:00:00Z",
+    "not_after": "2027-01-01T00:00:00Z",
+    "issuer": { "friendly_name": "Let's Encrypt" }
+  }
+]
