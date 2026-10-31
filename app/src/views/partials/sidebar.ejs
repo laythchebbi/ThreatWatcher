@@ -1,25 +1,23 @@
 <aside class="tw-sidebar">
-  <div class="tw-brand">
-    <div class="tw-brand-mark">
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 2 3 5v8c0 5.5 4.2 9.5 10 11 5.8-1.5 10-5.5 10-11V5l-10-3Z" fill="var(--tw-accent-soft)" stroke="var(--tw-accent)" stroke-width="1.4"/><circle cx="13" cy="12" r="3" fill="var(--tw-accent)"/></svg>
-    </div>
-    <div class="tw-brand-text"><div class="name">Threat Watcher</div><div class="sub">EARLY WARNING</div></div>
-  </div>
-  <nav class="tw-nav">
+  <a class="tw-brand" href="/">
+    <svg width="24" height="24" viewBox="0 0 26 26" fill="none" aria-hidden="true"><path d="M13 2 3 5v8c0 5.5 4.2 9.5 10 11 5.8-1.5 10-5.5 10-11V5l-10-3Z" fill="var(--tw-accent-soft)" stroke="var(--tw-accent)" stroke-width="1.4"/><circle cx="13" cy="12" r="3" fill="var(--tw-accent)"/></svg>
+    <span><span class="name">Threat Watcher</span><br><span class="sub">early warning</span></span>
+  </a>
+  <nav class="tw-nav" aria-label="Main">
     <% nav.forEach(function (n) { %>
       <% if (n.section) { %>
         <div class="tw-nav-section"><%= n.section %></div>
       <% } else if (n.soon) { %>
-        <span class="tw-nav-item disabled" title="Arrives in <%= n.soon %>"><%= n.label %><span class="tw-nav-badge"><%= n.soon %></span></span>
+        <span class="tw-nav-item disabled" aria-disabled="true"><%= n.label %><span class="tw-nav-badge"><%= n.soon %></span></span>
       <% } else { %>
-        <a class="tw-nav-item<%= (typeof active !== "undefined" && active === n.id) ? " active" : "" %>" href="<%= n.href %>"><%= n.label %></a>
+        <a class="tw-nav-item" href="<%= n.href %>"<%- (typeof active !== "undefined" && active === n.id) ? ' aria-current="page"' : "" %>><%= n.label %></a>
       <% } %>
     <% }); %>
   </nav>
-  <div class="tw-sidebar-foot">
-    <% if (user) { %>
-      <div class="tw-mono" style="font-size:11px;color:var(--tw-fg-2);overflow:hidden;text-overflow:ellipsis"><%= user.email %></div>
-      <form method="post" action="/logout" style="margin-top:6px"><button class="tw-btn tw-btn-ghost tw-btn-sm" type="submit">Sign out</button></form>
-    <% } %>
-  </div>
+  <% if (user) { %>
+    <div class="tw-sidebar-foot">
+      <div class="email" title="<%= user.email %>"><%= user.email %></div>
+      <form method="post" action="/logout" style="margin:0"><button class="tw-btn tw-btn-ghost tw-btn-sm" type="submit">Sign out</button></form>
+    </div>
+  <% } %>
 </aside>

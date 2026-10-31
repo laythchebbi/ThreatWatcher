@@ -65,7 +65,7 @@ test("dashboard renders counters and the domain list shows the domain", async (t
   const dash = await fetchWithCookies("/");
   assert.equal(dash.status, 200);
   const html = await dash.text();
-  assert.match(html, /Domains watched/);
+  assert.match(html, /domains watched/);
   assert.match(html, /acme-corp\.com/);
   const list = await fetchWithCookies("/domains");
   assert.match(await list.text(), /acme-corp\.com/);

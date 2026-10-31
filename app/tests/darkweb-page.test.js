@@ -68,8 +68,8 @@ test("dark-web page lists open mentions and shows the empty-sources notice", asy
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Selling acme bank access &lt;b&gt;bold&lt;\/b&gt;/, "excerpt escaped");
-  assert.match(html, /No leak sources configured/);
-  assert.match(html, /seed:sources/);
+  assert.match(html, /No dark-web sources are connected yet/);
+  assert.doesNotMatch(html, /seed:sources/, "no operator commands on a customer page");
 });
 
 test("dark-web page shows source count and last crawl when sources exist", async (t) => {

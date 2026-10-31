@@ -59,6 +59,7 @@ function createApp() {
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
   app.locals.nav = NAV;
+  Object.assign(app.locals, require("./lib/view-helpers"));
   app.use(readSession);
   app.use((req, res, next) => {
     res.locals.user = req.user;

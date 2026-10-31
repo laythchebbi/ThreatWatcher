@@ -110,9 +110,31 @@ test("page shows the timeline and groups sightings into tabs", async (t) => {
   const res = await fetchWithCookies(`/domains/${domain._id}`);
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.match(html, /dns_live/);
+  assert.match(html, /Now resolves in DNS/, "event kinds read as words");
   assert.match(html, /data-tab="watched"[^>]*>[\s\S]*?acme-c0rp\.com/);
   assert.match(html, /data-tab="inactive"[^>]*>[\s\S]*?acme-corp\.co\b/);
   assert.match(html, /data-tab="ignored"[^>]*>[\s\S]*?acme-corp\.net/);
   assert.match(html, /Scan now/);
+});
+
+test("sightings sort worst first and the page opens on the tab holding the worst open one", async (t) => {
+  const { fetchWithCookies, Sighting, user, domain } = await setup(t);
+  const base = { userId: user._id, domainId: domain._id, firstSeenAt: new Date() };
+  await Sighting.create({ ...base, lookalike: "low-one.com", severity: "low" });
+  await Sighting.create({ ...base, lookalike: "crit-one.com", severity: "critical" });
+  await Sighting.create({ ...base, lookalike: "high-one.com", severity: "high" });
+  const html = await (await fetchWithCookies(`/domains/${domain._id}`)).text();
+  const panel = html.match(/data-tab="new"[^>]*>([\s\S]*?)<\/table>/)[1];
+  const order = ["crit-one.com", "high-one.com", "low-one.com"].map((n) => panel.indexOf(n));
+  assert.ok(
+    order.every((i) => i > 0),
+    "all three in the New tab"
+  );
+  assert.deepEqual(
+    [...order].sort((a, b) => a - b),
+    order,
+    "critical, then high, then low"
+  );
+  assert.match(html, /data-tab="new"(?![^>]*hidden)/, "New tab is the open one");
+  assert.match(html, /data-tab="watched"[^>]*hidden/);
 });

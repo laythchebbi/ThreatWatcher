@@ -2,23 +2,23 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<title><%= title %> — Threat Watcher</title>
+<title><%= title %> · Threat Watcher</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("tw-theme") || "dark"; } catch (e) {}</script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/styles.css">
 <%- typeof style !== "undefined" ? style : "" %>
 </head>
 <body>
+<a class="tw-skip" href="#main">Skip to content</a>
 <div class="tw-shell">
   <%- include("partials/sidebar") %>
-  <main class="tw-main">
+  <div class="tw-main">
     <%- include("partials/topbar") %>
-    <div class="tw-page">
-      <div id="tw-page-content">
-        <%- body %>
-      </div>
-    </div>
-  </main>
+    <main class="tw-page" id="main" tabindex="-1">
+      <%- body %>
+    </main>
+  </div>
 </div>
 <script src="/static/js/app.js"></script>
 <%- typeof script !== "undefined" ? script : "" %>

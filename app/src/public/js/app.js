@@ -1,57 +1,46 @@
-/* Threat Watcher — theme / density / accent preferences. Vanilla JS, exposes window.TW. */
+/* Threat Watcher client script: theme toggle and the row actions that avoid a full form post.
+   The theme itself is applied by an inline script in <head>, before first paint. */
 (function () {
   const TW = (window.TW = window.TW || {});
+  const root = document.documentElement;
 
-  TW.applyPrefs = function () {
-    const t = localStorage.getItem("tw-theme") || "dark";
-    const d = localStorage.getItem("tw-density") || "mid";
-    const a = localStorage.getItem("tw-accent") || "240";
-    const root = document.documentElement;
-    root.setAttribute("data-theme", t);
-    root.setAttribute("data-density", d);
-    root.style.setProperty("--tw-accent", `oklch(0.68 0.14 ${a})`);
-    root.style.setProperty("--tw-accent-soft", `oklch(0.68 0.14 ${a} / 0.14)`);
-    root.style.setProperty("--tw-accent-line", `oklch(0.68 0.14 ${a} / 0.40)`);
-  };
+  function syncToggle() {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    document.querySelectorAll("[data-theme-toggle]").forEach(function (b) {
+      b.setAttribute("aria-label", "Switch to " + next + " theme");
+    });
+  }
 
   TW.toggleTheme = function () {
-    const cur = localStorage.getItem("tw-theme") || "dark";
-    localStorage.setItem("tw-theme", cur === "dark" ? "light" : "dark");
-    TW.applyPrefs();
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem("tw-theme", next);
+    } catch (e) {
+      /* private mode: the choice lasts for this page only */
+    }
+    syncToggle();
   };
 
-  TW.setDensity = function (d) {
-    localStorage.setItem("tw-density", d);
-    TW.applyPrefs();
-  };
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-theme-toggle]")) TW.toggleTheme();
+  });
+  syncToggle();
 
-  TW.setAccent = function (h) {
-    localStorage.setItem("tw-accent", h);
-    TW.applyPrefs();
-  };
-
-  TW.applyPrefs();
-})();
-
-/* ---- v2: the three page actions that avoid a full form post ---- */
-(function () {
-  const TW = (window.TW = window.TW || {});
-  TW.mentionAction = function (domainId, mentionId, action) {
-    return fetch("/domains/" + domainId + "/mentions/" + mentionId + "/" + action, {
+  function post(url) {
+    return fetch(url, {
       method: "POST",
       credentials: "same-origin",
       headers: { accept: "application/json" },
     }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     });
+  }
+  TW.mentionAction = function (domainId, mentionId, action) {
+    return post("/domains/" + domainId + "/mentions/" + mentionId + "/" + action);
   };
   TW.sightingAction = function (domainId, sightingId, action) {
-    return fetch("/domains/" + domainId + "/sightings/" + sightingId + "/" + action, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { accept: "application/json" },
-    }).then(function (r) {
-      return r.json();
-    });
+    return post("/domains/" + domainId + "/sightings/" + sightingId + "/" + action);
   };
 })();

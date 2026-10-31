@@ -6,6 +6,7 @@ const { domainBody } = require("../schemas/domain");
 const { termSchema, tooCommon, MAX_TERMS } = require("../schemas/terms");
 const { DarkwebPage, Mention } = require("../models");
 const { Domain, Sighting, Event } = require("../models");
+const { byWorst, sevRank } = require("../lib/view-helpers");
 
 const router = Router();
 router.use(requireAuth);
@@ -97,6 +98,7 @@ router.post("/:id/delete", loadDomain, async (req, res, next) => {
 });
 
 const WEEK_MS = 7 * 24 * 3600_000;
+const TAB_ORDER = ["new", "changed", "watched", "inactive", "ignored"];
 
 /** New / Watched / Changed / Inactive / Ignored, per spec 7.6. */
 function tabOf(sighting, changedIds, now) {
@@ -113,7 +115,8 @@ router.get("/:id", loadDomain, async (req, res, next) => {
     const now = Date.now();
     const [events, sightings, changed, mentions] = await Promise.all([
       Event.find({ domainId }).sort({ at: -1 }).limit(100).lean(),
-      Sighting.find({ domainId }).sort({ severity: -1, lastSeenAt: -1 }).lean(),
+      // severity is a string enum: sort by rank in JS, not by the string.
+      Sighting.find({ domainId }).sort({ lastSeenAt: -1 }).lean(),
       Event.distinct("sightingId", {
         domainId,
         kind: "infra_changed",
@@ -124,6 +127,18 @@ router.get("/:id", loadDomain, async (req, res, next) => {
     const changedIds = new Set(changed.map(String));
     const tabs = { new: [], watched: [], changed: [], inactive: [], ignored: [] };
     for (const s of sightings) tabs[tabOf(s, changedIds, now)].push(s);
+    for (const list of Object.values(tabs)) list.sort(byWorst);
+    // Open on the tab that holds the worst open sighting; Watched when nothing is open.
+    const openTab = TAB_ORDER.filter((k) => k !== "ignored" && k !== "inactive").reduce(
+      (best, k) => {
+        const worst = Math.max(
+          -1,
+          ...tabs[k].filter((s) => s.state === "open").map((s) => sevRank(s.severity))
+        );
+        return worst > best.worst ? { tab: k, worst } : best;
+      },
+      { tab: "watched", worst: -1 }
+    ).tab;
     res.render("domain", {
       title: req.domain.name,
       active: "domains",
@@ -131,6 +146,8 @@ router.get("/:id", loadDomain, async (req, res, next) => {
       domain: req.domain,
       events,
       tabs,
+      tabOrder: TAB_ORDER,
+      openTab,
       counts: Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.length])),
       mentions,
     });

@@ -25,3 +25,5 @@ coverage/
 .claude/settings.local.json
 # brainstorming mockups (superpowers visual companion)
 .superpowers/
+# impeccable design-skill snapshots (local tool output)
+.impeccable/
