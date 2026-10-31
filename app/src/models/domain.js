@@ -12,6 +12,15 @@ const domainSchema = new Schema(
     lastPermutation: [{ type: String }],
     certCursor: { type: String, default: null },
     ownRdap: { registrar: String, ns: [{ type: String }], fetchedAt: Date },
+    dkimSelector: { type: String, trim: true },
+    posture: {
+      checkedAt: Date,
+      spf: { present: Boolean, policy: String, lookups: Number },
+      dmarc: { present: Boolean, policy: String, rua: String },
+      dkim: { selectorsFound: [{ type: String }] },
+      grade: { type: String, enum: ["A", "B", "C", "D", "F"] },
+      findings: [{ type: String }],
+    },
     baselineDoneAt: { type: Date, default: null },
   },
   { timestamps: true, collection: "domains" }
