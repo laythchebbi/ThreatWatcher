@@ -13,7 +13,12 @@ async function start() {
 
   const scheduler = createScheduler({
     runCycle,
-    deps: { worker: mlBridge, lists: warninglists.load() },
+    deps: {
+      worker: mlBridge,
+      lists: warninglists.load(),
+      fetchImpl: fetch,
+      apiKey: env.CERTSPOTTER_API_KEY,
+    },
   });
   scheduler.start();
 

@@ -27,6 +27,8 @@ module.exports = [
         setImmediate: "readonly",
         fetch: "readonly",
         AbortSignal: "readonly",
+        Response: "readonly",
+        Headers: "readonly",
         URL: "readonly",
         URLSearchParams: "readonly",
       },

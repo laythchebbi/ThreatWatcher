@@ -51,7 +51,11 @@ test("first cycle is a baseline and schedules the next watch with jitter", async
   const events = await Event.find({ domainId: domain._id });
   assert.ok(events.length > 0);
   assert.ok(events.every((e) => e.payload.baseline === true));
-  assert.ok(events.every((e) => String(e.userId) === String(domain.userId) && e.sightingId));
+  assert.ok(events.every((e) => String(e.userId) === String(domain.userId)));
+  assert.ok(
+    events.filter((e) => e.payload.lookalike).every((e) => e.sightingId),
+    "sighting events carry their sighting id"
+  );
   assert.equal(await Sighting.countDocuments({ domainId: domain._id, "dns.resolves": true }), 1);
   assert.equal(
     await Sighting.countDocuments({ domainId: domain._id, baseline: true }),
