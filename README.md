@@ -1,205 +1,152 @@
 # Threat Watcher
 
-> **v2 is being built in [`app/`](app/README.md)**: one process, built-in
-> sign-in, a scheduled watch that turns lookalike-domain changes into events.
-> The `backend/` + `frontend/` apps below are the v1 shape and are deleted once
-> `app/` reaches Plan 3. See `docs/superpowers/specs/2026-10-30-threat-watcher-v2-design.md`.
+Threat Watcher is a web application that finds phishing campaigns before they start.
+You give it the domains that you own. It finds lookalike domains that attackers
+register, it watches what those domains do, and it shows each change to you as an
+event. It also finds data leaks that speak about your company.
 
-Early-phase threat detection platform. Modernized from a 2022 multi-component codebase into two stable apps.
+NOTE: This document uses ASD-STE100 Simplified Technical English.
 
-## Architecture
+## 1 What the application does
 
-```
-                              ┌────────────────────┐
-                              │   MongoDB           │
-                              │   (single store)    │
-                              └─────────▲──────────┘
-                                        │ mongoose
-                                        │
-   ┌─────────────────┐  HTTP    ┌──────┴──────────┐  child_process   ┌────────────┐
-   │   frontend      │  ──────▶ │   backend       │  ─────────────▶  │  ml/       │
-   │   Express+EJS   │          │   Express API   │                   │  Python    │
-   │   :4000         │  ◀────── │   :3000         │  scheduled        │  CLI       │
-   └─────────────────┘   JSON   └────┬────────────┘                   └────────────┘
-                                     │
-                                     │ scheduled (cron / Task Scheduler)
-                                     ▼
-                              ┌──────────────┐    SOCKS5
-                              │  scripts/    │  ─────────▶  Tor (system service)
-                              │  darkweb     │
-                              └──────────────┘
-```
+The application runs a watch cycle for each monitored domain every 6 hours. One
+watch cycle does these steps:
 
-- **`frontend/`** — Express + EJS UI (one process on `:4000`).
-- **`backend/`** — Express API + ML helpers + scheduled crawler scripts (one process on `:3000`).
-- **MongoDB** — single database (`threatwatcher`). Replaces the legacy MSSQL + MySQL + SQLite triple.
-- **`ml/`** — the Python URL-classifier worker called from the backend via `child_process`. CLI protocol: JSON-per-line on stdin/stdout.
-- **`scripts/`** — standalone Python jobs (dark-web crawler) scheduled via cron or the systemd timer in `deploy/systemd/`. Tor itself is a system service, not managed by the app.
+1. It makes a list of lookalike domains (permutations) with dnstwist.
+2. It gets new TLS certificates for those names from Certificate Transparency logs.
+3. It resolves the DNS records (A, MX, NS) of each candidate domain.
+4. It gets the registrar and the registration date of each live domain from RDAP.
+5. It downloads the home page of each live domain. It looks for a password form and
+   for your brand terms.
+6. It checks the SPF, DMARC and DKIM records of your own domain. It gives the domain
+   a grade from A to F.
+7. It compares the new data with the data from the last cycle. It makes one event for
+   each change.
+8. It searches crawled leak pages and Have I Been Pwned for mentions of your terms.
 
-## Run locally
+Each event has a severity: info, low, medium, high or critical. The dashboard shows
+the events in order of severity. On the domain page you can dismiss an event, ignore
+a lookalike domain, or start a new scan.
 
-Prereqs: Node 18+, Python 3.9+ (3.9 is required for the legacy scikit-learn 0.22.1 — bumped in M4), MongoDB 6+ (local or Atlas), Tor (only if running the dark-web crawler), a **WorkOS account** (free tier is enough for development).
+## 2 Repository layout
 
-### WorkOS setup (one-time)
+| Path                       | Content                                                                       |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `app/`                     | The application (version 2). Use this directory.                              |
+| `backend/`, `frontend/`    | The old version 1 applications. Plan 3 removes them. Do not add code to them. |
+| `docs/superpowers/specs/`  | The design documents.                                                         |
+| `docs/superpowers/plans/`  | The implementation plans.                                                     |
+| `SECURITY.md`              | The security policy and the list of credentials that you must rotate.         |
+| `.github/workflows/ci.yml` | The continuous integration checks.                                            |
 
-1. Sign up at <https://dashboard.workos.com>. Create a project.
-2. Under **Authentication → AuthKit**: enable it. Toggle the providers you want (Email + Password, Google OAuth, Microsoft OAuth).
-3. Under **Authentication → AuthKit → Configuration**: disable public sign-up (admin-invite-only).
-4. Under **Authentication → MFA**: enable TOTP (opt-in is the default).
-5. **Redirect URIs**: add `http://localhost:4000/auth/callback` (dev) and your production URL.
-6. **Organizations**: create the org you want all users to live in. Copy its `org_…` ID.
-7. From **API Keys**, copy the **Client ID** (`client_…`) and **Secret Key** (`sk_…`).
+## 3 Requirements
 
-Put these into the two `.env` files (see `.env.example` in each app).
+- Node.js 20 or newer
+- npm (installed with Node.js)
+- Python 3.9 or newer
+- MongoDB 7
 
-### Boot
+## 4 Installation
 
-```bash
-# Backend
-cd backend
-cp .env.example .env       # fill MONGODB_URI, WORKOS_*, secrets
-npm install
-pip install -r ml/requirements.txt
-npm start                  # → http://localhost:3000
+1. Clone the repository.
+2. Go to the root directory of the repository.
+3. Install the Node.js packages:
 
-# Frontend (separate terminal)
-cd frontend
-cp .env.example .env       # set BACKEND_URL + WORKOS_* + SESSION_PASSWORD
-npm install
-npm start                  # → http://localhost:4000
-```
+   ```bash
+   npm install
+   ```
 
-To create the first admin user:
+4. Make a Python virtual environment and install the worker packages:
 
-1. In the WorkOS dashboard, send an invitation to your email with the **admin** role into the configured org.
-2. Open the email, click the link → enroll in AuthKit (set password / OAuth).
-3. Sign in at `http://localhost:4000/login`.
-4. On first sign-in the backend upserts your local `users` row with `role: "admin"`.
-5. Now you can invite additional users from `/settings#team`.
+   ```bash
+   python3 -m venv app/.venv
+   app/.venv/bin/pip install -r app/ml/requirements.txt
+   ```
 
-`/health` on each app returns 200 when the process is up.
+5. Copy the example configuration file:
 
-## Development workflow
+   ```bash
+   cp app/.env.example app/.env
+   ```
 
-From the repo root:
+6. Open `app/.env` and set the values. Refer to section 5.
 
-```bash
-npm install                  # installs root dev tooling (eslint, prettier, husky)
-npm install -w backend       # installs backend deps
-npm install -w frontend      # installs frontend deps
+## 5 Configuration
 
-npm run lint                 # eslint on both apps
-npm run format:check         # prettier check
-npm test                     # runs node --test in both apps
-npm run audit                # npm audit (root + workspaces)
-```
+The application reads its configuration from `app/.env`.
 
-Python tooling (for `backend/ml/` and `backend/scripts/`):
+| Key                       | Required | Description                                                                                              |
+| ------------------------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `MONGODB_URI`             | Yes      | The MongoDB connection string.                                                                           |
+| `BASE_URL`                | Yes      | The public URL of the application. The application uses it in email links and in the Origin check.       |
+| `SESSION_PASSWORD`        | Yes      | A random string of 32 characters or more. Make one with `openssl rand -base64 48`.                       |
+| `PORT`                    | No       | The HTTP port. Default: 3000.                                                                            |
+| `PYTHON_BIN`              | No       | The Python interpreter. Set it to `app/.venv/bin/python` after step 4 of the installation.               |
+| `CERTSPOTTER_API_KEY`     | No       | A Cert Spotter API key. Without a key, the application uses crt.sh.                                      |
+| `WATCH_INTERVAL_HOURS`    | No       | The number of hours between two watch cycles of one domain. Default: 6.                                  |
+| `WATCH_CONCURRENCY`       | No       | The number of domains that the scheduler watches at the same time. Default: 3.                           |
+| `MAX_DOMAINS_PER_ACCOUNT` | No       | The maximum number of domains for one account. Default: 5.                                               |
+| `TRUST_PROXY`             | No       | Set it to `loopback` when nginx runs on the same host. Then the rate limits see the real client address. |
+| `SMTP_URL`                | No       | The SMTP server for emails. Without it, the application writes each email to the log.                    |
 
-```bash
-pip install ruff black pip-audit pip-tools
-ruff check backend/ml backend/scripts
-black --check backend/ml backend/scripts
-pip-audit -r backend/ml/requirements.txt
-```
+CAUTION: Do not add `app/.env` to git. It contains secrets.
 
-Pre-commit hook (husky) runs eslint+prettier on staged files automatically.
+## 6 Start the application
 
-## Endpoints
+1. Make sure that MongoDB runs. Example:
 
-Backend (`:3000`). Every `/auth/*` and `/api/*` route requires a WorkOS access token (`requireUser`); routes marked _admin_ also require the `admin` role.
+   ```bash
+   docker run -d --name tw-mongo -p 27017:27017 mongo:7
+   ```
 
-- `GET  /health`, `GET /metrics`
-- `GET  /auth/me`
-- `GET  /auth/invitations`, `POST /auth/invitations` `{email, role, expiresInDays}`, `DELETE /auth/invitations/:id` — _admin_
-- `GET  /api/users/me`, `PATCH /api/users/me`, `PUT /api/users/me/monitored`
-- `GET  /api/users`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate` — _admin_ (roles come from WorkOS: set them on the invitation or in the WorkOS dashboard)
-- `GET  /api/domains/search/:domain`
-- `POST /api/domains/scan/:domain` (writes a `Report`)
-- `GET  /api/reports?limit=50`, `GET /api/reports/:id`
-- `GET  /api/dataleak/search?q=...&source=telegram|twitter|forum|darkweb|all`
+2. Start the application from the root directory of the repository:
 
-Frontend (`:4000`). Pages are server-rendered (see "UI routes" below). Browser-side code talks to a same-origin `/api/*` proxy that attaches the access token server-side and refreshes it on 401:
+   ```bash
+   npm -w app start
+   ```
 
-- `GET  /api/reports`, `GET /api/reports/:id`, `GET /api/dataleak`
-- `GET  /api/me`, `PATCH /api/me`, `PUT /api/me/monitored`
-- `GET  /api/admin/users`, `POST /api/admin/users/:id/deactivate` — _admin_
-- `GET  /api/admin/invitations`, `POST /api/admin/invitations`, `DELETE /api/admin/invitations/:id` — _admin_
+3. Open http://localhost:3000 in a browser.
+4. Make an account. The application writes the verification link to the log. Open
+   the link in the browser.
+5. Add a domain and click **Scan now**. The first watch cycle fills the domain page.
 
-## Scheduled jobs
+NOTE: If another program uses port 3000, set `PORT=3100` and
+`BASE_URL=http://localhost:3100` in `app/.env`.
 
-- **Dark-web crawler** (`backend/scripts/darkweb_crawl.py`): reads enabled rows from `darkweb_sources`, fetches each via local Tor SOCKS5 (`127.0.0.1:9050`), upserts into `darkweb_pages`. Schedule via cron or `deploy/systemd/threat-watcher-crawl.timer`. Tor itself runs as a system service.
+## 7 Tests and checks
 
-## Repository layout
-
-```
-.
-├── README.md, SECURITY.md, .gitignore
-├── package.json                  workspace-style convenience scripts (lint/format)
-├── eslint.config.js, .prettierrc, pyproject.toml
-├── .github/workflows/ci.yml      lint + audit + gitleaks per app
-├── backend/                      Node.js API + Python ML helpers + crawler scripts
-└── frontend/                     Node.js + EJS user-facing app
-```
-
-The legacy 2022 v1 codebase (formerly the git-ignored `ThreatWatcher/` directory) was archived on 2026-09-05 to `~/Documents/threat-watcher-legacy-v1.tar.gz` and removed from the working tree. The archive is local-only: it contains the credentials catalogued in `SECURITY.md`. It also holds the labeled URL dataset and v1 `.pkl` models needed for the M4 retrain.
-
-## Security
-
-See [`SECURITY.md`](./SECURITY.md). Several credentials were committed to source in v1 — they are listed for rotation. **Do not push this repo to any remote until rotation is complete.**
-
-## Status
-
-All seven modernization milestones have landed in this repo:
-
-| #   | Milestone                  | Where                                                                                             |
-| --- | -------------------------- | ------------------------------------------------------------------------------------------------- |
-| M1  | Foundation + Consolidation | `backend/`, `frontend/`, root configs                                                             |
-| M2  | Tests                      | `backend/tests/`, `frontend/tests/` (`node --test`)                                               |
-| M3  | Type-check via `checkJs`   | `backend/tsconfig.json`, `frontend/tsconfig.json`, `npm run typecheck`                            |
-| M4  | ML refresh path            | `backend/ml/train_url_classifier.py`, `export_onnx.py`, `services/ml-onnx.js`, `ml/README.md`     |
-| M5  | UI screens                 | `frontend/src/views/{dashboard,new-scan,scan-report,reports,dark-web,settings,design-system}.ejs` |
-| M6  | Observability              | `services/metrics.js`, `/metrics`, request-ID middleware, optional `LOG_FILE` transport           |
-| M7  | Production deploy          | `deploy/` — PM2 ecosystem, nginx, systemd units, `deploy/README.md`                               |
-
-## UI routes
-
-| Route                     | Purpose                                                        |
-| ------------------------- | -------------------------------------------------------------- |
-| `/login`                  | sign-in landing page (no layout)                               |
-| `/auth/sign-in`           | redirect to WorkOS AuthKit (email/password or pick a provider) |
-| `/auth/sign-in/google`    | force Google OAuth                                             |
-| `/auth/sign-in/microsoft` | force Microsoft OAuth                                          |
-| `/auth/callback`          | OAuth code exchange                                            |
-| `/auth/sign-out`          | destroy sealed session                                         |
-| `/dashboard`              | landing, monitored domains, recent scans, threat counters      |
-| `/new-scan`               | run a scan against a domain                                    |
-| `/scan/:id`               | scan report with SecureScore gauge and findings tabs           |
-| `/reports`                | searchable history                                             |
-| `/dark-web`               | leak/mention search (Telegram/Twitter/forum/onion)             |
-| `/geolocation`            | geo activity surface — static design mockup, no data behind it |
-| `/settings`               | profile, monitored domains, integrations                       |
-| `/design-system`          | palette, typography, components reference                      |
-| `/metrics`                | Prometheus scrape (gated by nginx in prod)                     |
-
-## Verification commands
+Run these commands from the root directory of the repository. Each command must
+complete without an error before you commit.
 
 ```bash
-npm install                  # root tooling (eslint, prettier, husky, tsc)
-npm install -w backend
-npm install -w frontend
-pip install -r backend/ml/requirements.txt
-
 npm run lint
-npm run typecheck
-npm test
-npm run audit
 ```
-
-For an end-to-end smoke (requires a running MongoDB + filled `.env`):
 
 ```bash
-npm -w backend  start    # backend on :3000
-npm -w frontend start    # frontend on :4000
-open http://localhost:4000
+npm run typecheck
 ```
+
+```bash
+npm test
+```
+
+```bash
+npm audit --audit-level=high
+```
+
+NOTE: The first test run downloads a MongoDB binary of approximately 150 MB into
+`~/.cache/mongodb-binaries`.
+
+## 8 Status
+
+Plans 1 and 2 of 3 are complete. The application has accounts, domains, the watch
+cycle with all signals, and leak mentions.
+
+Plan 3 is the next step. It adds alerts by email, Slack and Microsoft Teams, a user
+interface review, deployment files, and the removal of `backend/` and `frontend/`.
+
+## 9 Security
+
+Read `SECURITY.md` before you deploy the application. It lists the credentials of
+the old version 1 that you must rotate. Send security reports by email. Do not open a
+public issue for a vulnerability.
