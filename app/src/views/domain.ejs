@@ -63,6 +63,26 @@
   <p class="tw-fg-2" style="font-size:10px;margin:8px 0 0">Breach data by <a href="https://haveibeenpwned.com">Have I Been Pwned</a> (CC BY 4.0).</p>
 </div>
 
+<div class="tw-panel" style="margin-bottom:14px;padding:12px 16px">
+  <div class="tw-eyebrow">Email posture</div>
+  <% if (domain.posture && domain.posture.grade) { %>
+    <div style="display:flex;gap:14px;align-items:center;margin-top:8px">
+      <div class="tw-num" style="font-size:28px;font-weight:600;color:var(--tw-<%= ["A","B"].includes(domain.posture.grade) ? "safe" : domain.posture.grade === "C" ? "warn" : "critical" %>)"><%= domain.posture.grade %></div>
+      <div class="tw-mono tw-fg-2" style="font-size:11px">
+        SPF <%= domain.posture.spf && domain.posture.spf.present ? domain.posture.spf.policy : "missing" %> ·
+        DMARC <%= domain.posture.dmarc && domain.posture.dmarc.present ? "p=" + domain.posture.dmarc.policy : "missing" %> ·
+        DKIM <%= domain.posture.dkim && domain.posture.dkim.selectorsFound && domain.posture.dkim.selectorsFound.length ? domain.posture.dkim.selectorsFound.join(", ") : "not found" %> ·
+        checked <%= domain.posture.checkedAt ? new Date(domain.posture.checkedAt).toISOString().slice(0, 10) : "—" %>
+      </div>
+    </div>
+    <% if (domain.posture.findings && domain.posture.findings.length) { %>
+      <ul style="margin:8px 0 0 18px;padding:0;font-size:12px"><% domain.posture.findings.forEach(function (f) { %><li><%= f %></li><% }); %></ul>
+    <% } %>
+  <% } else { %>
+    <p class="tw-fg-2" style="font-size:12px;margin:8px 0 0">Checked on the first watch cycle.</p>
+  <% } %>
+</div>
+
 <div class="dom-grid">
   <div class="tw-panel">
     <div class="dom-tabs" id="domTabs">
@@ -73,7 +93,7 @@
     <% ["new", "watched", "changed", "inactive", "ignored"].forEach(function (k, i) { %>
       <div data-tab="<%= k %>" class="tw-panel-body" <%= i === 1 ? "" : "hidden" %>>
         <table class="tw-table-min">
-          <thead><tr><th></th><th>Lookalike</th><th>Sim</th><th>A</th><th>MX</th><th>NS</th><th>Flags</th><th></th></tr></thead>
+          <thead><tr><th></th><th>Lookalike</th><th>Sim</th><th>A</th><th>MX</th><th>Registrar</th><th>Registered</th><th>Cert</th><th>Page</th><th>Flags</th><th></th></tr></thead>
           <tbody>
           <% tabs[k].forEach(function (s) { %>
             <tr data-sighting="<%= s._id %>">
@@ -82,7 +102,10 @@
               <td class="tw-num"><%= typeof s.similarity === "number" ? s.similarity.toFixed(2) : "—" %></td>
               <td class="tw-mono tw-fg-2"><%= (s.dns && s.dns.a || []).join(", ") || "—" %></td>
               <td class="tw-mono tw-fg-2"><%= (s.dns && s.dns.mx || []).length ? "yes" : "—" %></td>
-              <td class="tw-mono tw-fg-2"><%= (s.dns && s.dns.ns || [])[0] || "—" %></td>
+              <td class="tw-mono tw-fg-2"><%= (s.rdap && s.rdap.registrar) || "—" %></td>
+              <td class="tw-mono tw-fg-2"><%= (s.rdap && s.rdap.registeredAt) ? new Date(s.rdap.registeredAt).toISOString().slice(0, 10) : "—" %></td>
+              <td class="tw-mono tw-fg-2" title="<%= (s.cert && s.cert.issuer) || "" %>"><%= (s.cert && s.cert.notBefore) ? new Date(s.cert.notBefore).toISOString().slice(0, 10) + " " + (s.cert.issuer || "") : "—" %></td>
+              <td class="tw-mono tw-fg-2"><% if (s.http && s.http.status) { %><%= s.http.status %> <%= s.http.hasPasswordForm ? "login" : "" %> <%= (s.http.title || "").slice(0, 40) %><% } else { %>—<% } %></td>
               <td>
                 <% if (s.punycode) { %><span class="chip chip-warn">IDN</span><% } %>
                 <% if (s.substring) { %><span class="chip chip-info">substring</span><% } %>
@@ -101,7 +124,7 @@
               </td>
             </tr>
           <% }); %>
-          <% if (tabs[k].length === 0) { %><tr><td colspan="8" class="tw-empty">Nothing here.</td></tr><% } %>
+          <% if (tabs[k].length === 0) { %><tr><td colspan="11" class="tw-empty">Nothing here.</td></tr><% } %>
           </tbody>
         </table>
       </div>
@@ -120,6 +143,19 @@
       <% }); %>
       <% if (events.length === 0) { %><li class="tw-empty" style="display:block">No events yet.</li><% } %>
     </ul>
+    <div class="tw-panel-head" style="border-top:1px solid var(--tw-line)"><div><div class="tw-eyebrow">Leaks</div><h2>Mentions</h2></div></div>
+    <ul class="tl">
+      <% mentions.forEach(function (m) { %>
+        <li data-mention="<%= m._id %>" style="grid-template-columns:10px 1fr auto">
+          <span class="tw-sev tw-sev-<%= m.severity %>" title="<%= m.severity %>"></span>
+          <span><span class="chip"><%= m.source %></span> <%= m.excerpt %></span>
+          <span class="row-actions">
+            <% if (m.state === "open") { %><button class="tw-btn tw-btn-sm tw-btn-ghost" data-mact="dismiss">Dismiss</button><% } else { %><span class="chip">dismissed</span><button class="tw-btn tw-btn-sm tw-btn-ghost" data-mact="reopen">Reopen</button><% } %>
+          </span>
+        </li>
+      <% }); %>
+      <% if (mentions.length === 0) { %><li class="tw-empty" style="display:block">No leak mentions.</li><% } %>
+    </ul>
   </div>
 </div>
 
@@ -132,8 +168,14 @@ document.getElementById("domTabs").addEventListener("click", function (e) {
 });
 document.addEventListener("click", function (e) {
   var btn = e.target.closest("[data-act]");
-  if (!btn) return;
-  var row = btn.closest("[data-sighting]");
-  TW.sightingAction("<%= domain._id %>", row.dataset.sighting, btn.dataset.act).then(function () { location.reload(); });
+  if (btn) {
+    var row = btn.closest("[data-sighting]");
+    TW.sightingAction("<%= domain._id %>", row.dataset.sighting, btn.dataset.act).then(function () { location.reload(); });
+    return;
+  }
+  var mbtn = e.target.closest("[data-mact]");
+  if (!mbtn) return;
+  var mrow = mbtn.closest("[data-mention]");
+  TW.mentionAction("<%= domain._id %>", mrow.dataset.mention, mbtn.dataset.mact).then(function () { location.reload(); });
 });
 </script>

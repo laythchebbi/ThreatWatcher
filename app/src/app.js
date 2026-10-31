@@ -14,6 +14,7 @@ const { originCheck } = require("./middleware/origin-check");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashboard");
 const domainRoutes = require("./routes/domains");
+const darkwebRoutes = require("./routes/darkweb");
 const { NAV } = require("./nav");
 
 /** Build the Express app. Only server.js calls listen(); tests listen on port 0. */
@@ -65,6 +66,7 @@ function createApp() {
   app.use(authRoutes);
   app.use(dashboardRoutes);
   app.use("/domains", domainRoutes);
+  app.use("/dark-web", darkwebRoutes);
 
   app.use(errors.notFound);
   app.use(errors.handler);

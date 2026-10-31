@@ -4,7 +4,7 @@ const { requireAuth, requireVerified } = require("../middleware/session");
 const validate = require("../middleware/validate");
 const { domainBody } = require("../schemas/domain");
 const { termSchema, tooCommon, MAX_TERMS } = require("../schemas/terms");
-const { DarkwebPage } = require("../models");
+const { DarkwebPage, Mention } = require("../models");
 const { Domain, Sighting, Event } = require("../models");
 
 const router = Router();
@@ -110,7 +110,7 @@ router.get("/:id", loadDomain, async (req, res, next) => {
   try {
     const domainId = req.domain._id;
     const now = Date.now();
-    const [events, sightings, changed] = await Promise.all([
+    const [events, sightings, changed, mentions] = await Promise.all([
       Event.find({ domainId }).sort({ at: -1 }).limit(100).lean(),
       Sighting.find({ domainId }).sort({ severity: -1, lastSeenAt: -1 }).lean(),
       Event.distinct("sightingId", {
@@ -118,6 +118,7 @@ router.get("/:id", loadDomain, async (req, res, next) => {
         kind: "infra_changed",
         at: { $gte: new Date(now - WEEK_MS) },
       }),
+      Mention.find({ domainId }).sort({ firstSeenAt: -1 }).limit(50).lean(),
     ]);
     const changedIds = new Set(changed.map(String));
     const tabs = { new: [], watched: [], changed: [], inactive: [], ignored: [] };
@@ -130,6 +131,7 @@ router.get("/:id", loadDomain, async (req, res, next) => {
       events,
       tabs,
       counts: Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.length])),
+      mentions,
     });
   } catch (err) {
     next(err);
@@ -184,6 +186,24 @@ router.post("/:id/hibp/delete", loadDomain, async (req, res, next) => {
     await Domain.updateOne({ _id: req.domain._id }, { $unset: { hibp: 1 } });
     if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
     return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+const MENTION_TRANSITIONS = {
+  dismiss: (m) => ({ state: "dismissed", dismissedAtSeverity: m.severity }),
+  reopen: () => ({ state: "open" }),
+};
+
+router.post("/:id/mentions/:mid/:action(dismiss|reopen)", loadDomain, async (req, res, next) => {
+  try {
+    const mention = await Mention.findOne({ _id: req.params.mid, domainId: req.domain._id });
+    if (!mention) return res.status(404).json({ error: "not_found" });
+    const patch = MENTION_TRANSITIONS[req.params.action](mention);
+    await Mention.updateOne({ _id: mention._id }, { $set: patch });
+    if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
+    return res.json({ ok: true, state: patch.state });
   } catch (err) {
     return next(err);
   }

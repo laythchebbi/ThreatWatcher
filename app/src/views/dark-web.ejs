@@ -1,0 +1,55 @@
+<style>
+.dw-notice { padding: 10px 14px; border: 1px solid var(--tw-warn); background: var(--tw-warn-soft); color: var(--tw-warn); border-radius: var(--tw-radius); font-size: 12px; margin-bottom: 14px; }
+.dw-row { display: grid; grid-template-columns: 10px 110px 1fr auto; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--tw-line); font-size: 13px; align-items: start; }
+.dw-row:last-child { border-bottom: 0; }
+.dw-excerpt { color: var(--tw-fg-1); line-height: 1.5; word-break: break-word; }
+.dw-toolbar { display: flex; gap: 10px; margin: 18px 0 14px; }
+.dw-toolbar input { flex: 1; }
+.chip { display: inline-block; padding: 1px 7px; border-radius: 99px; font-family: var(--tw-font-mono); font-size: 10px; background: var(--tw-bg-3); color: var(--tw-fg-1); margin-right: 4px; }
+</style>
+
+<div class="tw-page-head" style="margin-bottom:18px">
+  <div class="tw-eyebrow">Watch · Dark web</div>
+  <h1>Leak mentions</h1>
+</div>
+
+<% if (sourceCount === 0) { %>
+  <div class="dw-notice">No leak sources configured. Add onion or forum URLs to <span class="tw-mono">app/data/darkweb-sources.json</span> and run <span class="tw-mono">npm run seed:sources</span>; the hourly crawler fills the index from there. Have I Been Pwned works without any source: add your key on a domain page.</div>
+<% } else { %>
+  <p class="tw-fg-2 tw-mono" style="font-size:11px;margin:0 0 14px"><%= sourceCount %> source<%= sourceCount === 1 ? "" : "s" %> · last crawl <%= lastCrawledAt ? new Date(lastCrawledAt).toISOString().slice(0, 16).replace("T", " ") : "not yet" %></p>
+<% } %>
+
+<div class="tw-panel">
+  <% if (mentions.length === 0) { %>
+    <div class="tw-empty">No open mentions. New matches appear here after each watch cycle.</div>
+  <% } else { %>
+    <% mentions.forEach(function (m) { %>
+      <div class="dw-row">
+        <span class="tw-sev tw-sev-<%= m.severity %>" title="<%= m.severity %>"></span>
+        <div class="tw-mono tw-fg-2" style="font-size:11px"><%= new Date(m.firstSeenAt).toISOString().slice(0, 10) %><br><span class="chip"><%= m.source %></span></div>
+        <div class="dw-excerpt"><a class="tw-mono" href="/domains/<%= m.domainId %>"><%= m.domainName %></a> · <%= (m.matchedTerms || []).join(", ") %><br><%= m.excerpt %></div>
+        <div class="tw-mono" style="font-size:10px;color:var(--tw-fg-3);text-align:right"><%= m.sourceRef %></div>
+      </div>
+    <% }); %>
+  <% } %>
+</div>
+
+<form class="dw-toolbar" method="get" action="/dark-web">
+  <input class="tw-input tw-mono" name="q" value="<%= q %>" placeholder="Search crawled pages for a keyword, email or brand…" minlength="2" maxlength="200" autocomplete="off">
+  <button class="tw-btn tw-btn-primary" type="submit">Search</button>
+</form>
+
+<% if (results) { %>
+  <div class="tw-panel">
+    <% if (results.length === 0) { %>
+      <div class="tw-empty">No crawled page matches <span class="tw-mono"><%= q %></span>.</div>
+    <% } else { %>
+      <% results.forEach(function (p) { %>
+        <div class="dw-row" style="grid-template-columns: 110px 1fr">
+          <div class="tw-mono tw-fg-2" style="font-size:11px"><%= new Date(p.crawledAt).toISOString().slice(0, 10) %></div>
+          <div class="dw-excerpt"><strong><%= p.title || p.pageUrl %></strong><br><%= p.excerpt %><br><span class="tw-mono tw-fg-3" style="font-size:10px"><%= p.pageUrl %></span></div>
+        </div>
+      <% }); %>
+    <% } %>
+  </div>
+<% } %>

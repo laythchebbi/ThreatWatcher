@@ -36,6 +36,15 @@
 /* ---- v2: the three page actions that avoid a full form post ---- */
 (function () {
   const TW = (window.TW = window.TW || {});
+  TW.mentionAction = function (domainId, mentionId, action) {
+    return fetch("/domains/" + domainId + "/mentions/" + mentionId + "/" + action, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+    }).then(function (r) {
+      return r.json();
+    });
+  };
   TW.sightingAction = function (domainId, sightingId, action) {
     return fetch("/domains/" + domainId + "/sightings/" + sightingId + "/" + action, {
       method: "POST",
