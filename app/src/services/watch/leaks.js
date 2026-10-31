@@ -105,7 +105,13 @@ function diffMentions(previous, candidates, now) {
   return { upserts, events };
 }
 
+/**
+ * @typedef {{ domain: any, terms: string[], since: Date | null, models: any, fetchImpl?: Function, buckets?: any, cache?: any }} SourceArgs
+ * @typedef {{ name: string, find: (args: SourceArgs) => Promise<object[]> }} LeakSource
+ */
+
 /** Crawled dark-web pages newer than `since`, matched in Mongo first, excerpted in JS. */
+/** @type {LeakSource} */
 const darkwebPagesSource = {
   name: "darkweb",
   async find({ domain, terms, since, models }) {
@@ -134,15 +140,17 @@ const darkwebPagesSource = {
   },
 };
 
+/** @type {LeakSource[]} */
 const leakSources = [darkwebPagesSource];
 
 /**
  * Run every leak source for a domain and persist mentions + events.
+ * @param {any} domain
+ * @param {{ models: any, now?: Date, since?: Date | null, baseline?: boolean, fetchImpl?: Function, buckets?: any, cache?: any }} opts
  * @returns {Promise<{ mentions: number, events: number }>}
  */
-async function runLeaks(
-  domain,
-  {
+async function runLeaks(domain, opts) {
+  const {
     models,
     now = new Date(),
     since = domain.lastWatchedAt || null,
@@ -150,8 +158,7 @@ async function runLeaks(
     fetchImpl,
     buckets,
     cache,
-  }
-) {
+  } = opts;
   const { Mention, Event } = models;
   const terms = [...new Set([splitDomain(domain.name).label, ...(domain.terms || [])])];
   const candidates = [];

@@ -1,0 +1,9 @@
+{
+  "Name": "AcmeCorpBreach2026",
+  "Title": "ACME Corp",
+  "Domain": "acme-corp.com",
+  "BreachDate": "2026-10-20",
+  "AddedDate": "2026-10-29T10:00:00Z",
+  "PwnCount": 1204,
+  "DataClasses": ["Email addresses", "Passwords"]
+}

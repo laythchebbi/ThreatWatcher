@@ -45,17 +45,7 @@ async function guardHost(host, { resolver, allowPrivate }) {
   return blocked ? "private_target" : null;
 }
 
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/** Brand term as a regex that treats "-" and whitespace alike. */
-function termRegex(term) {
-  return new RegExp(
-    escapeRegex(String(term).toLowerCase()).replace(/(?:\\-|\s)+/g, "[-\\s]*"),
-    "i"
-  );
-}
+const { termRegex } = require("./leaks");
 
 async function readCapped(res) {
   const reader = res.body?.getReader?.();

@@ -139,7 +139,8 @@ router.post("/:id/terms", loadDomain, async (req, res, next) => {
   try {
     const parsed = termSchema.safeParse(req.body?.term);
     if (!parsed.success) return refuse(req, res, 400, "term_invalid");
-    if ((req.domain.terms || []).length >= MAX_TERMS) return refuse(req, res, 422, "term_limit");
+    if (/** @type {string[]} */ (req.domain.terms || []).length >= MAX_TERMS)
+      return refuse(req, res, 422, "term_limit");
     if (await tooCommon(parsed.data, { DarkwebPage })) return refuse(req, res, 422, "term_common");
     await Domain.updateOne({ _id: req.domain._id }, { $addToSet: { terms: parsed.data } });
     if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
