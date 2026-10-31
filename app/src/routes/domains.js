@@ -3,6 +3,8 @@ const { env } = require("../config");
 const { requireAuth, requireVerified } = require("../middleware/session");
 const validate = require("../middleware/validate");
 const { domainBody } = require("../schemas/domain");
+const { termSchema, tooCommon, MAX_TERMS } = require("../schemas/terms");
+const { DarkwebPage } = require("../models");
 const { Domain, Sighting, Event } = require("../models");
 
 const router = Router();
@@ -13,6 +15,9 @@ const NOTICES = {
   verify: "Verify your email to add domains.",
   domain_limit: `You can watch up to ${env.MAX_DOMAINS_PER_ACCOUNT} domains for now.`,
   domain_exists: "That domain is already watched.",
+  term_invalid: "Brand terms are 4 to 40 characters.",
+  term_limit: `Up to ${MAX_TERMS} brand terms per domain.`,
+  term_common: "That term matches too many pages to be useful; pick something more specific.",
 };
 
 router.get("/", async (req, res, next) => {
@@ -127,6 +132,33 @@ router.get("/:id", loadDomain, async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+});
+
+router.post("/:id/terms", loadDomain, async (req, res, next) => {
+  try {
+    const parsed = termSchema.safeParse(req.body?.term);
+    if (!parsed.success) return refuse(req, res, 400, "term_invalid");
+    if ((req.domain.terms || []).length >= MAX_TERMS) return refuse(req, res, 422, "term_limit");
+    if (await tooCommon(parsed.data, { DarkwebPage })) return refuse(req, res, 422, "term_common");
+    await Domain.updateOne({ _id: req.domain._id }, { $addToSet: { terms: parsed.data } });
+    if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
+    return res.json({ ok: true, term: parsed.data });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/:id/terms/delete", loadDomain, async (req, res, next) => {
+  try {
+    await Domain.updateOne(
+      { _id: req.domain._id },
+      { $pull: { terms: String(req.body?.term || "").toLowerCase() } }
+    );
+    if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
   }
 });
 

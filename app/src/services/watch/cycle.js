@@ -1,7 +1,8 @@
 const crypto = require("node:crypto");
 const { env } = require("../../config");
 const logger = require("../../logger");
-const { Sighting, Event, Domain } = require("../../models");
+const { Sighting, Event, Domain, Mention, DarkwebPage } = require("../../models");
+const { runLeaks } = require("./leaks");
 const { scoreDomains } = require("../similarity");
 const { permutations, splitDomain } = require("./permute");
 const { resolveCandidates, probeWildcardTlds, tldOf } = require("./dns");
@@ -245,7 +246,22 @@ async function runCycle(domain, deps) {
         }))
       );
     }
-    result.events = all.length;
+    // 5b. leak mentions (crawled pages, HIBP), newer than the last watch
+    const leaks = await step(
+      "leaks",
+      domain,
+      () =>
+        runLeaks(domain, {
+          models: { Mention, DarkwebPage, Event },
+          now,
+          since: domain.lastWatchedAt || null,
+          baseline,
+          fetchImpl,
+          cache,
+        }),
+      { mentions: 0, events: 0 }
+    );
+    result.events = all.length + leaks.events;
     result.sightings = upserts.length;
     const hadPermutations = source !== "previous" || (domain.lastPermutation || []).length > 0;
     if (baseline && hadPermutations) update.baselineDoneAt = now;

@@ -10,7 +10,8 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "node --test --test-reporter=spec",
-    "update:warninglists": "node scripts/update-warninglists.js"
+    "update:warninglists": "node scripts/update-warninglists.js",
+    "seed:sources": "node scripts/seed-sources.js"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -28,6 +28,22 @@
   <form method="post" action="/domains/<%= domain._id %>/scan" style="margin:0"><button class="tw-btn tw-btn-primary" type="submit">Scan now</button></form>
 </div>
 
+<div class="tw-panel" style="margin-bottom:14px;padding:12px 16px">
+  <div class="tw-eyebrow">Brand terms for leak matching</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
+    <% (domain.terms || []).forEach(function (term) { %>
+      <form method="post" action="/domains/<%= domain._id %>/terms/delete" style="margin:0;display:inline-flex;align-items:center;gap:6px" class="chip">
+        <span class="tw-mono"><%= term %></span><input type="hidden" name="term" value="<%= term %>"><button class="tw-btn tw-btn-sm tw-btn-ghost" type="submit" aria-label="Remove">×</button>
+      </form>
+    <% }); %>
+    <form method="post" action="/domains/<%= domain._id %>/terms" style="margin:0;display:inline-flex;gap:6px">
+      <input class="tw-input tw-mono" name="term" placeholder="e.g. acme bank" minlength="4" maxlength="40" required style="width:200px">
+      <button class="tw-btn tw-btn-sm tw-btn-primary" type="submit">Add term</button>
+    </form>
+  </div>
+  <p class="tw-fg-2" style="font-size:11px;margin:8px 0 0">Your domain label is matched automatically. Add brand names people write without the domain, up to five.</p>
+</div>
+
 <div class="dom-grid">
   <div class="tw-panel">
     <div class="dom-tabs" id="domTabs">
