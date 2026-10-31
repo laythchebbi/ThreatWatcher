@@ -4,30 +4,41 @@ const { buckets: defaultBuckets, labelCache } = require("./providers");
 const MIN_LABEL = 5;
 const CRTSH_MAX_ROWS = 5000;
 const CRTSH_MAX_BYTES = 5 * 1024 * 1024;
+const MAX_PAGES = 20;
 const THRESHOLD = 0.7;
 
 /** @typedef {{ names: string[], notBefore: Date, issuer: string, tbs: string }} CertRow */
 
-async function fromCertSpotter(label, { fetchImpl, apiKey, cursor, buckets }) {
-  await buckets.certspotter.take();
-  const url =
-    `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(label)}` +
-    `&include_subdomains=true&expand=dns_names&expand=issuer` +
-    (cursor ? `&after=${encodeURIComponent(cursor)}` : "");
-  const res = await fetchImpl(url, {
-    headers: { Authorization: `Bearer ${apiKey}`, "User-Agent": "ThreatWatcher/2" },
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!res.ok) throw new Error(`certspotter ${res.status}`);
-  const rows = /** @type {any[]} */ (await res.json());
-  const certs = rows.map((r) => ({
+function spotterRow(r) {
+  return {
     names: (r.dns_names || []).map((n) => String(n).toLowerCase()),
     notBefore: new Date(r.not_before),
     issuer: r.issuer?.friendly_name || r.issuer?.name || "",
     tbs: String(r.tbs_sha256 || r.id),
-  }));
-  const last = rows.length ? String(rows[rows.length - 1].id) : cursor || null;
-  return { certs, cursor: last };
+  };
+}
+
+/** Cert Spotter issuances after `cursor`, paged until an empty page (bounded). */
+async function fromCertSpotter(label, { fetchImpl, apiKey, cursor, buckets }) {
+  const certs = [];
+  let after = cursor;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    await buckets.certspotter.take();
+    const url =
+      `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(label)}` +
+      `&include_subdomains=true&expand=dns_names&expand=issuer` +
+      (after ? `&after=${encodeURIComponent(after)}` : "");
+    const res = await fetchImpl(url, {
+      headers: { Authorization: `Bearer ${apiKey}`, "User-Agent": "ThreatWatcher/2" },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(`certspotter ${res.status}`);
+    const rows = /** @type {any[]} */ (await res.json());
+    if (!rows.length) break;
+    certs.push(...rows.map(spotterRow));
+    after = String(rows[rows.length - 1].id);
+  }
+  return { certs, cursor: after || null };
 }
 
 async function fromCrtSh(label, { fetchImpl, buckets }) {
@@ -54,9 +65,10 @@ async function fromCrtSh(label, { fetchImpl, buckets }) {
 }
 
 /**
- * Certificates mentioning `label`, Cert Spotter first (cursor-based), crt.sh
- * as backfill and fallback, both cached per label for 6 h. Labels shorter
- * than 5 characters are skipped (the query returns the internet).
+ * Certificates mentioning `label`: Cert Spotter (cursor-paged) when a key is
+ * set, with one crt.sh backfill on the first call for a label; crt.sh alone
+ * otherwise. Cached per label *and cursor* for 6 h. Labels shorter than 5
+ * characters are skipped (the query returns the internet).
  * @returns {Promise<{ certs: CertRow[], cursor: string | null, source: "certspotter"|"crtsh"|"cache"|"skipped", error?: string }>}
  */
 async function fetchCertificates(
@@ -65,7 +77,7 @@ async function fetchCertificates(
 ) {
   if (!label || label.length < MIN_LABEL)
     return { certs: [], cursor: cursor || null, source: "skipped" };
-  const key = `certs:${label}`;
+  const key = `certs:${label}:${cursor || "start"}`;
   const cached = cache.get(key);
   if (cached) return { ...cached, source: "cache" };
 
@@ -73,7 +85,18 @@ async function fetchCertificates(
   if (apiKey) {
     try {
       const out = await fromCertSpotter(label, { fetchImpl, apiKey, cursor, buckets });
-      const value = { certs: out.certs, cursor: out.cursor };
+      let certs = out.certs;
+      if (!cursor) {
+        // First sight of this label: crt.sh history, because Cert Spotter starts "now".
+        try {
+          const back = await fromCrtSh(label, { fetchImpl, buckets });
+          const seen = new Set(certs.map((c) => c.tbs));
+          certs = [...certs, ...back.certs.filter((c) => !seen.has(c.tbs))];
+        } catch (err) {
+          errors.push(err.message);
+        }
+      }
+      const value = { certs, cursor: out.cursor };
       cache.set(key, value);
       return { ...value, source: "certspotter" };
     } catch (err) {

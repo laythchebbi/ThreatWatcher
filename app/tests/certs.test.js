@@ -34,7 +34,7 @@ test("certspotter parses, advances cursor and caches", async () => {
   const fetchImpl = async (url, init) => {
     urls.push(String(url));
     assert.equal(init.headers.Authorization, "Bearer k");
-    return ok(spotter);
+    return ok(/after=9000/.test(String(url)) ? spotter : []);
   };
   const cache = createCache({ ttlMs: 60_000 });
   const first = await fetchCertificates("acme-corp", {
@@ -61,12 +61,12 @@ test("certspotter parses, advances cursor and caches", async () => {
   const second = await fetchCertificates("acme-corp", {
     fetchImpl,
     apiKey: "k",
-    cursor: "9004",
+    cursor: "9000",
     cache,
     buckets: fastBuckets(),
   });
-  assert.equal(second.source, "cache");
-  assert.equal(urls.length, 1);
+  assert.equal(second.source, "cache", "same label and cursor within the TTL");
+  assert.equal(urls.length, 2, "one data page plus the empty page, nothing on the cached call");
 });
 
 test("falls back to crt.sh and caps rows", async () => {
@@ -113,4 +113,69 @@ test("certCandidates filters by similarity and merges per name", () => {
   assert.equal(merged.firstIssuedAt.toISOString(), "2026-08-01T00:00:00.000Z");
   assert.equal(merged.notBefore.toISOString(), "2026-10-28T00:00:00.000Z");
   assert.equal(merged.tbs, "bbb222");
+});
+
+test("certspotter pages until an empty page and the cache is keyed by cursor", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    calls.push(u);
+    if (/after=9000/.test(u)) return ok(spotter.slice(0, 2));
+    if (/after=9002/.test(u)) return ok(spotter.slice(2, 4));
+    if (/certspotter/.test(u)) return ok([]);
+    return ok(crtsh);
+  };
+  const cache = createCache({ ttlMs: 60_000 });
+  const out = await fetchCertificates("acme-corp", {
+    fetchImpl,
+    apiKey: "k",
+    cursor: "9000",
+    cache,
+    buckets: fastBuckets(),
+  });
+  assert.equal(out.certs.length, 4);
+  assert.equal(out.cursor, "9004");
+  assert.equal(
+    calls.filter((u) => /certspotter/.test(u)).length,
+    3,
+    "two pages plus the empty one"
+  );
+  const other = await fetchCertificates("acme-corp", {
+    fetchImpl,
+    apiKey: "k",
+    cursor: null,
+    cache,
+    buckets: fastBuckets(),
+  });
+  assert.notEqual(other.source, "cache", "a different cursor is not the same cache entry");
+});
+
+test("with a key and no cursor yet, crt.sh backfills once and the results merge", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    calls.push(u);
+    if (/certspotter/.test(u)) return ok(/after=/.test(u) ? [] : spotter.slice(0, 1));
+    return ok(crtsh);
+  };
+  const out = await fetchCertificates("acme-corp", {
+    fetchImpl,
+    apiKey: "k",
+    cursor: null,
+    cache: createCache({ ttlMs: 1000 }),
+    buckets: fastBuckets(),
+  });
+  assert.ok(
+    calls.some((u) => /crt\.sh/.test(u)),
+    "crt.sh called for backfill"
+  );
+  assert.ok(
+    out.certs.some((c) => c.names.includes("acme-corp-secure.net")),
+    "crt.sh rows merged"
+  );
+  assert.ok(
+    out.certs.some((c) => c.tbs === "aaa111"),
+    "certspotter rows merged"
+  );
+  assert.equal(out.source, "certspotter");
 });

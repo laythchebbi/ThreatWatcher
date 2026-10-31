@@ -160,3 +160,33 @@ test("fetchCertificate reads fingerprints from the peer certificate", async () =
   assert.equal(cert.issuer, "Let's Encrypt R11");
   assert.ok(cert.notBefore instanceof Date);
 });
+
+test("fetch is pinned to the vetted address so DNS rebinding cannot swap the target", async () => {
+  const { makePinnedDispatcher } = require("../src/services/watch/http");
+  let seen;
+  const fetchImpl = async (url, init) => {
+    seen = init;
+    return new Response("<html><title>x</title></html>", {
+      status: 200,
+      headers: { "content-type": "text/html" },
+    });
+  };
+  const facts = await fetchPage("login.local", {
+    fetchImpl,
+    resolver: { resolve4: async () => ["203.0.113.9"], resolve6: async () => [] },
+    brandTerms: [],
+    insecure: true,
+  });
+  assert.equal(facts.status, 200);
+  assert.ok(seen.dispatcher, "a dispatcher is passed");
+  assert.equal(seen.pinnedIp, "203.0.113.9");
+  const d = makePinnedDispatcher("203.0.113.9", 4);
+  await new Promise((resolve) =>
+    d.lookup("anything.example", {}, (err, address, family) => {
+      assert.equal(err, null);
+      assert.equal(address, "203.0.113.9");
+      assert.equal(family, 4);
+      resolve();
+    })
+  );
+});

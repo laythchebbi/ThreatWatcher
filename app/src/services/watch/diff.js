@@ -145,7 +145,10 @@ function diffDomain({
     }
 
     // Pages: live once, mimics-login once.
-    if (pageFacts) {
+    if (pageFacts && pageFacts.error && pageFacts.status == null) {
+      // Transient fetch failure: keep what we knew, note the error, raise nothing.
+      next.http = { ...(prev?.http || {}), fetchedAt: pageFacts.fetchedAt, error: pageFacts.error };
+    } else if (pageFacts) {
       const { visibleText: _text, ...stored } = pageFacts;
       next.http = stored;
       if (ok2xx3xx(pageFacts.status) && !ok2xx3xx(prev?.http?.status)) kinds.push("page_live");
@@ -162,14 +165,13 @@ function diffDomain({
     }
 
     // RDAP: defensive registrations are ignored; old registrations stay quiet.
+    // Old registrations are quiet on discovery only; later changes alert normally.
     let stale = false;
     if (rdapFacts) {
       const defensive = isDefensive(rdapFacts, ownRdap);
       next.rdap = { ...rdapFacts, defensive, fetchedAt: now };
       if (defensive) next.state = "ignored";
-      stale = isStale(rdapFacts, now);
-    } else if (prev?.rdap) {
-      stale = isStale(prev.rdap, now);
+      stale = !prev && isStale(rdapFacts, now);
     }
 
     let produced = kinds.map((kind) => {

@@ -214,3 +214,76 @@ test("defensive registration is ignored, stale registration stays low", () => {
   assert.equal(stale.events.find((e) => e.kind === "new_lookalike").payload.stale, true);
   assert.equal(stale.upserts[0].rdap.registrar, "GoDaddy");
 });
+
+test("a transient fetch failure keeps the stored page facts and raises nothing, then a success does not re-fire", () => {
+  const first = diffDomain({
+    ...base,
+    candidates: ["acme-corp-login.com"],
+    observed: new Map([["acme-corp-login.com", live()]]),
+    pages: new Map([
+      ["acme-corp-login.com", page({ hasPasswordForm: true, brandTermFound: true })],
+    ]),
+  });
+  assert.ok(kinds(first.events).includes("page_mimics_login"));
+  const timeout = {
+    status: null,
+    title: "",
+    finalHost: "acme-corp-login.com",
+    redirects: [],
+    headers: {},
+    hasPasswordForm: false,
+    brandTermFound: false,
+    visibleText: "",
+    similarity: null,
+    fetchedAt: now,
+    error: "TimeoutError",
+  };
+  const blip = diffDomain({
+    ...base,
+    previous: [first.upserts[0]],
+    candidates: ["acme-corp-login.com"],
+    observed: new Map([["acme-corp-login.com", live()]]),
+    pages: new Map([["acme-corp-login.com", timeout]]),
+  });
+  assert.deepEqual(kinds(blip.events), []);
+  assert.equal(blip.upserts[0].http.hasPasswordForm, true, "facts kept");
+  assert.equal(blip.upserts[0].http.error, "TimeoutError");
+  const back = diffDomain({
+    ...base,
+    previous: [blip.upserts[0]],
+    candidates: ["acme-corp-login.com"],
+    observed: new Map([["acme-corp-login.com", live()]]),
+    pages: new Map([
+      ["acme-corp-login.com", page({ hasPasswordForm: true, brandTermFound: true })],
+    ]),
+  });
+  assert.deepEqual(kinds(back.events), [], "no re-fire after the blip");
+});
+
+test("stale registration mutes only the discovery cycle; a later live page alerts normally", () => {
+  const rdapOld = new Map([
+    [
+      "acme-corp-login.com",
+      { registeredAt: day(-900), registrar: "GoDaddy", ns: ["ns1.other.net"] },
+    ],
+  ]);
+  const first = diffDomain({
+    ...base,
+    candidates: ["acme-corp-login.com"],
+    observed: new Map([["acme-corp-login.com", live()]]),
+    rdap: rdapOld,
+  });
+  assert.ok(first.events.every((e) => e.severity === "low"));
+  const later = diffDomain({
+    ...base,
+    previous: [first.upserts[0]],
+    candidates: ["acme-corp-login.com"],
+    observed: new Map([["acme-corp-login.com", live()]]),
+    pages: new Map([["acme-corp-login.com", page()]]),
+  });
+  assert.notEqual(
+    later.events.find((e) => e.kind === "page_live").severity,
+    "low",
+    "stale no longer mutes"
+  );
+});

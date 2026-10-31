@@ -87,6 +87,7 @@ router.post("/:id/delete", loadDomain, async (req, res, next) => {
     await Promise.all([
       Sighting.deleteMany({ domainId }),
       Event.deleteMany({ domainId }),
+      Mention.deleteMany({ domainId }),
       Domain.deleteOne({ _id: domainId }),
     ]);
     return res.redirect("/domains");

@@ -38,6 +38,30 @@ function makeFetch(log, { certsFail = false } = {}) {
   return async (url) => {
     const u = String(url);
     log.push(u);
+    if (/haveibeenpwned\.com\/api\/v3\/latestBreach$/.test(u))
+      return new Response(
+        JSON.stringify({
+          Name: "AcmeBreach",
+          Title: "ACME",
+          BreachDate: "2026-10-20",
+          PwnCount: 10,
+          DataClasses: ["Email addresses"],
+        }),
+        { status: 200 }
+      );
+    if (/haveibeenpwned\.com\/api\/v3\/breacheddomain\//.test(u))
+      return new Response(JSON.stringify({ alice: ["AcmeBreach"] }), { status: 200 });
+    if (/haveibeenpwned\.com\/api\/v3\/breach\//.test(u))
+      return new Response(
+        JSON.stringify({
+          Name: "AcmeBreach",
+          Title: "ACME",
+          BreachDate: "2026-10-20",
+          PwnCount: 10,
+          DataClasses: ["Email addresses"],
+        }),
+        { status: 200 }
+      );
     if (/certspotter|crt\.sh/.test(u)) {
       if (certsFail) throw new Error("provider down");
       return new Response(JSON.stringify(spotter), {
@@ -163,4 +187,39 @@ test("own rdap is refreshed monthly and sighting rdap only on first resolve", as
     deps(log, { now: new Date(NOW.getTime() + 6 * 3600_000) })
   );
   assert.equal(rdapCalls(), afterFirst, "nothing new resolved, no new rdap calls");
+});
+
+test("with an HIBP key the leak step still persists dark-web mentions and adds the breach", async (t) => {
+  const { Domain, Mention, DarkwebPage, domain } = await seed(t);
+  await Domain.updateOne({ _id: domain._id }, { hibp: { apiKey: "key123" } });
+  await DarkwebPage.create({
+    sourceUrl: "http://s.onion",
+    pageUrl: "http://s.onion/p",
+    title: "dump",
+    body: "acme-corp.com creds",
+    crawledAt: new Date(NOW.getTime() - 1000),
+  });
+  await runCycle(await Domain.findById(domain._id), deps([]));
+  const sources = (await Mention.find({ domainId: domain._id })).map((m) => m.source).sort();
+  assert.deepEqual(sources, ["darkweb", "hibp"]);
+  assert.equal((await Domain.findById(domain._id)).hibp.lastBreachSeen, "AcmeBreach");
+});
+
+test("RDAP is capped per cycle and selected by missing rdap, not by first resolve", async (t) => {
+  const { domain } = await seed(t);
+  const many = Array.from({ length: 60 }, (_, i) => `acme-corp-${i}.com`);
+  const log = [];
+  const wideResolver = {
+    ...resolver,
+    resolve4: async (n) =>
+      many.includes(n) || n === "acme-corp.com"
+        ? ["1.1.1.1"]
+        : Promise.reject(new Error("ENOTFOUND")),
+  };
+  await runCycle(
+    domain,
+    deps(log, { worker: { permute: async () => many }, resolver: wideResolver })
+  );
+  const sightingRdap = log.filter((u) => /rdap\.org\/domain\/acme-corp-\d+\.com$/.test(u)).length;
+  assert.ok(sightingRdap <= 50 && sightingRdap > 0, `rdap calls: ${sightingRdap}`);
 });

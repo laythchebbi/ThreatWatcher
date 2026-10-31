@@ -2,6 +2,7 @@ const dnsPromises = require("node:dns/promises");
 const tls = require("node:tls");
 const crypto = require("node:crypto");
 const cheerio = require("cheerio");
+const { fetch: undiciFetch, Agent } = require("undici");
 const stringSimilarity = require("string-similarity");
 const { mapBounded } = require("./dns");
 
@@ -31,6 +32,7 @@ function isPrivateIp(ip) {
 
 const isLoopback = (ip) => ip.startsWith("127.") || ip === "::1";
 
+/** Resolve once, vet every address, and hand back the one the fetch must use. */
 async function guardHost(host, { resolver, allowPrivate }) {
   const addrs = [];
   for (const fn of ["resolve4", "resolve6"]) {
@@ -40,9 +42,24 @@ async function guardHost(host, { resolver, allowPrivate }) {
       /* one family missing is fine */
     }
   }
-  if (!addrs.length) return "unresolved";
+  if (!addrs.length) return { error: "unresolved" };
   const blocked = addrs.some((a) => isPrivateIp(a) && !(allowPrivate && isLoopback(a)));
-  return blocked ? "private_target" : null;
+  if (blocked) return { error: "private_target" };
+  const address = addrs[0];
+  return { address, family: address.includes(":") ? 6 : 4 };
+}
+
+/**
+ * An undici Agent whose DNS lookup always answers the vetted address, so the
+ * connection cannot be rebound between the guard and the request. SNI and
+ * Host keep the real hostname.
+ */
+function makePinnedDispatcher(address, family) {
+  const lookup = (_hostname, _opts, cb) => cb(null, address, family);
+  const agent = new Agent({ connect: { lookup, timeout: TIMEOUT_MS } });
+  // exposed for tests
+  /** @type {any} */ (agent).lookup = lookup;
+  return agent;
 }
 
 const { termRegex } = require("./leaks");
@@ -100,7 +117,7 @@ function analyse(html, { brandTerms, referenceText }) {
  */
 async function fetchPage(name, opts) {
   const {
-    fetchImpl = fetch,
+    fetchImpl = undiciFetch,
     resolver = dnsPromises,
     brandTerms = [],
     referenceText,
@@ -129,16 +146,23 @@ async function fetchPage(name, opts) {
     facts.redirects = [];
     try {
       for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-        const host = new URL(url).hostname;
-        const blocked = await guardHost(host, { resolver, allowPrivate });
-        if (blocked) {
-          facts.error = blocked;
+        const parsed = new URL(url);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          facts.error = "bad_scheme";
+          return facts;
+        }
+        const host = parsed.hostname;
+        const vetted = await guardHost(host, { resolver, allowPrivate });
+        if (vetted.error) {
+          facts.error = vetted.error;
           return facts;
         }
         const res = await fetchImpl(url, {
           redirect: "manual",
           headers: { "User-Agent": USER_AGENT, Accept: "text/html,*/*;q=0.5" },
           signal: AbortSignal.timeout(TIMEOUT_MS),
+          dispatcher: makePinnedDispatcher(vetted.address, vetted.family),
+          pinnedIp: vetted.address,
         });
         const location = res.headers.get("location");
         if (res.status >= 300 && res.status < 400 && location) {
@@ -227,4 +251,11 @@ async function fetchPages(sightings, deps, opts = {}) {
   return new Map(results);
 }
 
-module.exports = { fetchPage, fetchPages, fetchCertificate, isPrivateIp, termRegex };
+module.exports = {
+  fetchPage,
+  fetchPages,
+  fetchCertificate,
+  isPrivateIp,
+  termRegex,
+  makePinnedDispatcher,
+};

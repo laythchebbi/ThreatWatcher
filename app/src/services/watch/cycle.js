@@ -6,7 +6,7 @@ const { runLeaks } = require("./leaks");
 require("./hibp"); // registers the HIBP leak source
 const { scoreDomains } = require("../similarity");
 const { permutations, splitDomain } = require("./permute");
-const { resolveCandidates, probeWildcardTlds, tldOf } = require("./dns");
+const { resolveCandidates, probeWildcardTlds, tldOf, mapBounded } = require("./dns");
 const { fetchCertificates, certCandidates } = require("./certs");
 const { fetchPage, fetchPages, fetchCertificate } = require("./http");
 const { lookupRdap } = require("./rdap");
@@ -19,6 +19,7 @@ const DAY_MS = 24 * 3600_000;
 const OWN_RDAP_TTL = 30 * DAY_MS;
 const POSTURE_TTL = 7 * DAY_MS;
 const BASELINE_PAGE_LIMIT = 50;
+const RDAP_PER_CYCLE = 50; // the rest land next cycle; the bucket is 60/min
 const STRIP = new Set(["_id", "userId", "domainId", "createdAt", "updatedAt", "__v"]);
 
 /** now + WATCH_INTERVAL_HOURS ± 15 min, so domains added together drift apart. */
@@ -121,17 +122,20 @@ async function runCycle(domain, deps) {
         update.ownRdap = ownRdap;
       }
     }
-    const rdap = new Map();
-    const firstResolving = [...observed.keys()].filter((n) => !prevByName.get(n)?.dns?.resolves);
-    for (const name of firstResolving) {
-      const facts = await step("rdap", domain, () => lookupRdap(name, { fetchImpl }), null);
-      if (facts) rdap.set(name, facts);
-    }
-
-    // 4. pages for resolving names, highest similarity first
     const similarity = new Map(
       scoreDomains(domain.name, [...observed.keys()], 0).map((s) => [s.domain, s.similarity])
     );
+    const rdap = new Map();
+    const needRdap = [...observed.keys()]
+      .filter((n) => !prevByName.get(n)?.rdap?.fetchedAt)
+      .sort((a, b) => (similarity.get(b) || 0) - (similarity.get(a) || 0))
+      .slice(0, RDAP_PER_CYCLE);
+    await mapBounded(needRdap, 4, async (name) => {
+      const facts = await step("rdap", domain, () => lookupRdap(name, { fetchImpl }), null);
+      if (facts) rdap.set(name, facts);
+    });
+
+    // 4. pages for resolving names, highest similarity first
     const refKey = `ref:${domain.name}`;
     let referenceText = cache.get(refKey);
     if (referenceText === undefined) {
@@ -253,7 +257,7 @@ async function runCycle(domain, deps) {
       domain,
       () =>
         runLeaks(domain, {
-          models: { Mention, DarkwebPage, Event },
+          models: { Mention, DarkwebPage, Event, Domain },
           now,
           since: domain.lastWatchedAt || null,
           baseline,

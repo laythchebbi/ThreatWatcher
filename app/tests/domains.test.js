@@ -79,3 +79,20 @@ test("delete removes the domain", async (t) => {
   assert.equal(res.status, 302);
   assert.equal(await Domain.countDocuments(), 0);
 });
+
+test("delete removes the domain's mentions too", async (t) => {
+  const { post, Domain, Mention, user } = await signedIn(t);
+  await post("/domains", { name: "acme-corp.com" });
+  const d = await Domain.findOne({ name: "acme-corp.com" });
+  await Mention.create({
+    userId: d.userId,
+    domainId: d._id,
+    source: "darkweb",
+    sourceRef: "darkweb:x",
+    excerpt: "x",
+    excerptHash: "h",
+    severity: "medium",
+  });
+  await post(`/domains/${d._id}/delete`, {});
+  assert.equal(await Mention.countDocuments({ domainId: d._id }), 0);
+});
