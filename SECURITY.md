@@ -12,11 +12,11 @@ Email security findings to **security@<your-domain>** (replace before publishing
 | --- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | MongoDB Atlas user `layth1` (cluster `cluster0.kjfil.mongodb.net`)                  | `ThreatWatcher/BackEnd/backend/app.js:76`, `ThreatWatcher/BackEnd/backend/data_get.py:7`                                                                              | Rotate password in Atlas console. Tighten IP allowlist. Audit cluster access logs for past 30 days.                                                                       |
 | 2   | Azure SQL user `layth` (`threatwatcher.database.windows.net`, db `threatwatcherdb`) | `ThreatWatcher/BackEnd/backend/app.js:63-72` (commented but in git history)                                                                                           | Rotate password in Azure portal. Confirm the DB is being decommissioned per the modernization plan.                                                                       |
-| 3   | WhoisXML API key `***REMOVED***`                                 | `ThreatWatcher/BackEnd/backend/FetchingAPI.js:95`                                                                                                                     | Revoke key at whoisxmlapi.com. The app no longer uses WhoisXML; do not create a replacement key.                                                                          |
+| 3   | WhoisXML API key `***REMOVED***`                                                    | `ThreatWatcher/BackEnd/backend/FetchingAPI.js:95`                                                                                                                     | Revoke key at whoisxmlapi.com. The app no longer uses WhoisXML; do not create a replacement key.                                                                          |
 | 4   | Slack bot token                                                                     | `ThreatWatcher/BackEnd/backend/consumer.js`                                                                                                                           | Rotate at api.slack.com. The app no longer uses a Slack bot token; Slack alerts (v2) use per-customer incoming webhooks.                                                  |
 | 5   | Telethon session for `@laythchebbi`                                                 | `ThreatWatcher/DataLeaks/@laythchebbi.session` and `ThreatWatcher/DataLeak/data_leak_api/data_leak_api/api/@laythchebbi.session` (both now only in the local archive) | Terminate all active Telegram sessions in the app; re-auth from a clean machine. The `.session` file is now `.gitignore`d but exists in history of the embedded git repo. |
 
-After rotation, document the rotation date next to each row. Do NOT remove this table — it's the historical record.
+On 2026-10-31 the three literal values that this file and `.gitleaks.toml` quoted were rewritten to `***REMOVED***` across the whole history (git filter-repo) before the first push to GitHub; rotation is still required. After rotation, document the rotation date next to each row. Do NOT remove this table — it's the historical record.
 
 ## Scrubbing git history
 
@@ -39,9 +39,7 @@ The simplest, safest path:
      ```bash
      cd "ThreatWatcher/FrontEnd/Threat-Watcher-front-login/Threat-Watcher"
      git filter-repo --replace-text <(cat <<'EOF'
-     ***REMOVED***==>***REMOVED***
-     ***REMOVED***==>***REMOVED***
-     ***REMOVED***==>***REMOVED***
+     <leaked value>==>***REMOVED***
      EOF
      )
      ```

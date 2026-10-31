@@ -123,9 +123,10 @@ M1–M7 + WorkOS auth complete. Repo moved from Windows to macOS on 2026-09-05
 and cleaned (spec: `docs/superpowers/specs/2026-09-05-project-cleanup-design.md`):
 legacy v1 archived off-repo, deps patched to 0 audit findings, dead migration
 script removed, docs re-synced with the real routes. CI
-(`.github/workflows/ci.yml`) runs on push; **no git remote yet**. Not yet
+(`.github/workflows/ci.yml`) runs on push; remote `origin` is github.com/laythchebbi/ThreatWatcher (public; history
+rewritten 2026-10-31 to scrub the leaked v1 values before the first push). Not yet
 booted against live MongoDB/WorkOS — that's the only end-to-end gap.
 
-Next candidates: rotate the SECURITY.md credentials, then push to a remote; M4 ML retrain (`train_url_classifier.py` +
+Next candidates: rotate the SECURITY.md credentials; M4 ML retrain (`train_url_classifier.py` +
 `export_onnx.py`, data in the archive); decide on the pending majors
 (express 5, mongoose 9, `@workos-inc/node` 10) before building new features.
