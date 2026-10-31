@@ -44,7 +44,7 @@ npm run lint           # eslint, both apps
 npm run typecheck      # tsc --checkJs, both apps
 npm test               # node --test, three workspaces (33 legacy + app)
 npm run format         # prettier (JS/JSON/MD/CSS only — NOT .ejs)
-npm audit              # must stay at 0 vulnerabilities
+npm audit              # 0 high/critical is the CI gate; see the minimatch note below
 ```
 
 All four gates are currently green; keep them that way.
@@ -108,6 +108,10 @@ amber DEMO banner). Live scans still use the real `domain-similarity` engine.
   `npm run typecheck >/dev/null || { …; exit 1; }`.
 - **Python edits through exact-anchor replacements break after prettier reflows the
   target**; several Plan 2 steps silently skipped a file. Prefer regex anchors or Edit.
+- **minimatch GHSA-g3hv-75wg-m249 (moderate, 2026-10-31)** reaches us only via
+  eslint and ejs→jake→filelist; every minimatch < 11.0.1 is affected and the
+  consumers pin 3.x/5.x, so there is no non-breaking fix. CI gates at `high`, so
+  it does not fail builds. Re-check `npm audit` when eslint or ejs release.
 - **Audit advisories drift.** The 2026-09-05 "0 vulnerabilities" state went to
   1 critical + 6 high by 2026-10-30 with no code change. Re-run `npm audit`
   before claiming the gate is green; the `qs` override must stay inside
