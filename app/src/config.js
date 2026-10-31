@@ -1,6 +1,9 @@
 const path = require("path");
 const { z } = require("zod");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+// Tests set their own env (tests/helpers/env.js); a developer's .env must not leak in.
+if (process.env.NODE_ENV !== "test") {
+  require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+}
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

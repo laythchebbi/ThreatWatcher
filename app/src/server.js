@@ -16,7 +16,6 @@ async function start() {
     deps: {
       worker: mlBridge,
       lists: warninglists.load(),
-      fetchImpl: fetch,
       apiKey: env.CERTSPOTTER_API_KEY,
     },
   });

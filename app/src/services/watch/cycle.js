@@ -1,4 +1,6 @@
 const crypto = require("node:crypto");
+// Page fetches attach an undici 8 pool; Node 22's built-in fetch rejects it, so default to undici's.
+const { fetch: undiciFetch } = require("undici");
 const { env } = require("../../config");
 const logger = require("../../logger");
 const { Sighting, Event, Domain, Mention, DarkwebPage } = require("../../models");
@@ -57,7 +59,7 @@ async function runCycle(domain, deps) {
   const {
     worker,
     resolver,
-    fetchImpl = fetch,
+    fetchImpl = undiciFetch,
     apiKey = env.CERTSPOTTER_API_KEY,
     connect,
     lists,

@@ -17,3 +17,17 @@ test("GET /health is 200 and unknown routes are 404 json", async () => {
     server.close();
   }
 });
+
+// Under Referrer-Policy: no-referrer, browsers send `Origin: null` on same-origin form
+// POSTs (Fetch spec), and the origin check rejects every form. Keep a policy that
+// sends our own origin back to us.
+test("Referrer-Policy lets browsers send our origin on form posts", async () => {
+  const server = createApp().listen(0);
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const res = await fetch(`${base}/health`);
+    assert.equal(res.headers.get("referrer-policy"), "same-origin");
+  } finally {
+    server.close();
+  }
+});

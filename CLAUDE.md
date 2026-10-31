@@ -116,6 +116,13 @@ amber DEMO banner). Live scans still use the real `domain-similarity` engine.
   loads `http.js` died at require time (`createZstdDecompress` is undefined on 20). CI and
   `app/package.json` `engines` now say 22. Also: the bucket's poll timers are `unref()`'d,
   so a test that awaits a refilling `take()` must hold a ref'd timer or the loop drains.
+- **Never hand the built-in `fetch` an undici 8 dispatcher.** On Node 22 the built-in
+  fetch is an older undici and throws `invalid onRequestStart method`; Node 26 hides it.
+  `fetchPage` pins DNS with an undici `Agent`, so the cycle defaults to undici's `fetch`.
+  To run tests on Node 22 without nvm or Docker: `npm i --no-save node@22` in a temp dir.
+- **helmet's default `Referrer-Policy: no-referrer` breaks every form.** Browsers then send
+  `Origin: null` on same-origin POSTs and `originCheck` answers 403 `bad_origin`. Keep
+  `referrerPolicy: same-origin` (tests/app.test.js pins it). Node `fetch` tests never see this.
 - **Audit advisories drift.** The 2026-09-05 "0 vulnerabilities" state went to
   1 critical + 6 high by 2026-10-30 with no code change. Re-run `npm audit`
   before claiming the gate is green; the `qs` override must stay inside

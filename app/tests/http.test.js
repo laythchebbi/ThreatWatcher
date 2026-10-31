@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { fetch: undiciFetch } = require("undici");
 const { fetchPage, fetchPages, isPrivateIp } = require("../src/services/watch/http");
 
 const login = fs.readFileSync(path.join(__dirname, "fixtures/page-login.html"), "utf8");
@@ -43,7 +44,10 @@ after(() => server.close());
 // localFetch sends any *.local URL to the local server, keeping the path.
 const resolver = { resolve4: async () => ["127.0.0.1"], resolve6: async () => [] };
 const localFetch = (url, init) =>
-  fetch(String(url).replace(/^http:\/\/[a-z0-9.-]+\.local:\d+/, `http://127.0.0.1:${port}`), init);
+  undiciFetch(
+    String(url).replace(/^http:\/\/[a-z0-9.-]+\.local:\d+/, `http://127.0.0.1:${port}`),
+    init
+  );
 const deps = (over = {}) => ({
   fetchImpl: localFetch,
   resolver,

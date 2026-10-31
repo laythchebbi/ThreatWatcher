@@ -35,6 +35,8 @@ function createApp() {
           "connect-src": ["'self'"],
         },
       },
+      // no-referrer makes browsers send `Origin: null` on form POSTs, which originCheck rejects.
+      referrerPolicy: { policy: "same-origin" },
     })
   );
   app.use(compression());

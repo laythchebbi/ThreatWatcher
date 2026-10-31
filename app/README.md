@@ -34,6 +34,18 @@ link out of the log. Behind nginx set `TRUST_PROXY=loopback` so the per-IP
 rate limits see real client addresses. Add a domain, press **Scan now** or wait for the
 minute tick, and the first watch cycle (the baseline) fills the domain page.
 
+## Test data
+
+```bash
+npm -w app run seed:demo   # local only; refuses NODE_ENV=production
+```
+
+Creates a verified test account with two watched domains (acme-corp.com,
+northwind-bank.com), lookalikes in every tab, events, leak mentions and a
+crawled leak page. The sign-in details are at the top of `scripts/seed-demo.js`.
+Running it again replaces that account's data and signs it out. Next real scan
+is five hours out; press **Scan now** to run one against live sources.
+
 ## Tests
 
 ```bash
