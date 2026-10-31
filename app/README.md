@@ -3,10 +3,11 @@
 The single-process successor to `backend/` + `frontend/`. One Express server
 renders the pages and runs the watch; sign-in is built in; MongoDB is the only
 service. Design: `docs/superpowers/specs/2026-10-30-threat-watcher-v2-design.md`.
-This workspace is Plan 1 of 3 (`docs/superpowers/plans/2026-10-31-v2-core.md`):
-accounts, domains, the watch cycle and the domain pages. Certificates, HTTP,
-RDAP and leak mentions are Plan 2; alerts, the UI pass and deleting the old apps
-are Plan 3.
+Plans 1 and 2 of 3 are in (`docs/superpowers/plans/2026-10-31-v2-core.md`,
+`2026-10-31-v2-signals.md`): accounts, domains, the watch cycle with
+permutations, DNS, certificates, page facts, RDAP, email posture and leak
+mentions (crawled pages and Have I Been Pwned). Alerts, the UI pass and
+deleting the old apps are Plan 3.
 
 ## Run locally
 
@@ -52,10 +53,13 @@ src/config.js         zod-validated .env
 src/middleware/       session (iron-session + sessionVersion), rate-limit, origin-check, errors
 src/services/auth.js  signup, login, verify, reset
 src/services/password.js  scrypt
-src/services/watch/   permute → dns → diff → cycle → scheduler; severity; warninglists
+src/services/watch/   permute → certs → dns → rdap → http → posture → diff → leaks → cycle → scheduler
+                      providers (token buckets, label cache), severity, warninglists, hibp
 src/services/ml-bridge.js  the Python worker (permute + classify)
-src/routes/           auth, dashboard, domains (+ sighting actions, scan now)
+src/routes/           auth, dashboard, domains (+ sighting/mention actions, terms, HIBP key, scan now), darkweb
 src/views/            EJS, Console look; styles in public/css/styles.css
 ml/url_classifier.py  worker; ml/requirements.txt
 data/warninglists/    vendored MISP lists (npm run update:warninglists)
+data/darkweb-sources.json  crawl targets (npm run seed:sources)
+scripts/darkweb_crawl.py   Tor crawler (hourly timer), scripts/seed-sources.js
 ```

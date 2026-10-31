@@ -27,7 +27,10 @@ and holds app-specific fields (`monitoredDomains`, `role`, `deactivatedAt`).
 
 The rewrite lives in a third workspace, `app/`: one Express process, built-in
 sign-in (scrypt + versioned sealed sessions), MongoDB only, a scheduled watch
-cycle (dnstwist in the Python worker → DNS → diff → events). Design:
+cycle (dnstwist in the Python worker → certificates → DNS → RDAP → page fetch →
+posture → diff → leak mentions → events). Plan 2 (2026-10-31) added the signal
+steps, `providers.js` (one token bucket per external API, 6 h per-label cache),
+the SSRF-guarded fetch in `http.js`, and leak sources (`leaks.js`, `hibp.js`). Design:
 `docs/superpowers/specs/2026-10-30-threat-watcher-v2-design.md`; plans in
 `docs/superpowers/plans/`. `backend/` and `frontend/` stay until Plan 3
 deletes them. `app/README.md` has the run instructions. Tests there use
@@ -100,6 +103,11 @@ amber DEMO banner). Live scans still use the real `domain-similarity` engine.
   default must be the _output_ type (`.default(false)`, not `.default("false")`).
   Bumped 3→4 on 2026-10-30 for GHSA-mrhx-c7xc-m3w5; `tsc` catches the type
   mismatch, the frontend smoke test asserts `SESSION_COOKIE_SECURE === false`.
+- **Gate chains must abort on failure.** `(npm run typecheck … && echo ok || … | head)` returns
+  the exit code of `head`, so two Plan 2 commits landed with tsc red. Use
+  `npm run typecheck >/dev/null || { …; exit 1; }`.
+- **Python edits through exact-anchor replacements break after prettier reflows the
+  target**; several Plan 2 steps silently skipped a file. Prefer regex anchors or Edit.
 - **Audit advisories drift.** The 2026-09-05 "0 vulnerabilities" state went to
   1 critical + 6 high by 2026-10-30 with no code change. Re-run `npm audit`
   before claiming the gate is green; the `qs` override must stay inside
