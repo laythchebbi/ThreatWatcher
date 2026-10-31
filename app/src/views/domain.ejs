@@ -44,6 +44,25 @@
   <p class="tw-fg-2" style="font-size:11px;margin:8px 0 0">Your domain label is matched automatically. Add brand names people write without the domain, up to five.</p>
 </div>
 
+<div class="tw-panel" style="margin-bottom:14px;padding:12px 16px">
+  <div class="tw-eyebrow">Have I Been Pwned breaches</div>
+  <% if (domain.hibp && domain.hibp.apiKey) { %>
+    <div class="tw-mono tw-fg-2" style="font-size:11px;margin-top:8px">
+      key ending <%= domain.hibp.apiKey.slice(-4) %>
+      · last checked <%= domain.hibp.checkedAt ? new Date(domain.hibp.checkedAt).toISOString().slice(0, 16).replace("T", " ") : "not yet" %>
+      <% if (domain.hibp.error) { %> · <span style="color:var(--tw-critical)">error: <%= domain.hibp.error %></span><% } %>
+    </div>
+    <form method="post" action="/domains/<%= domain._id %>/hibp/delete" style="margin:8px 0 0"><button class="tw-btn tw-btn-sm tw-btn-ghost" type="submit">Remove key</button></form>
+  <% } else { %>
+    <form method="post" action="/domains/<%= domain._id %>/hibp" style="margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap">
+      <input class="tw-input tw-mono" name="apiKey" placeholder="your HIBP API key" required style="width:320px">
+      <button class="tw-btn tw-btn-sm tw-btn-primary" type="submit">Save key</button>
+    </form>
+    <p class="tw-fg-2" style="font-size:11px;margin:8px 0 0">Verify <span class="tw-mono"><%= domain.name %></span> at haveibeenpwned.com/DomainSearch first; the free tier covers domains with up to 10 breached addresses.</p>
+  <% } %>
+  <p class="tw-fg-2" style="font-size:10px;margin:8px 0 0">Breach data by <a href="https://haveibeenpwned.com">Have I Been Pwned</a> (CC BY 4.0).</p>
+</div>
+
 <div class="dom-grid">
   <div class="tw-panel">
     <div class="dom-tabs" id="domTabs">

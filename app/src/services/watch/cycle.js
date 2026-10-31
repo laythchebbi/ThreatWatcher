@@ -3,6 +3,7 @@ const { env } = require("../../config");
 const logger = require("../../logger");
 const { Sighting, Event, Domain, Mention, DarkwebPage } = require("../../models");
 const { runLeaks } = require("./leaks");
+require("./hibp"); // registers the HIBP leak source
 const { scoreDomains } = require("../similarity");
 const { permutations, splitDomain } = require("./permute");
 const { resolveCandidates, probeWildcardTlds, tldOf } = require("./dns");

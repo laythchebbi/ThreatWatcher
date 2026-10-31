@@ -18,6 +18,7 @@ const NOTICES = {
   term_invalid: "Brand terms are 4 to 40 characters.",
   term_limit: `Up to ${MAX_TERMS} brand terms per domain.`,
   term_common: "That term matches too many pages to be useful; pick something more specific.",
+  hibp_key_invalid: "That does not look like a Have I Been Pwned API key.",
 };
 
 router.get("/", async (req, res, next) => {
@@ -156,6 +157,31 @@ router.post("/:id/terms/delete", loadDomain, async (req, res, next) => {
       { _id: req.domain._id },
       { $pull: { terms: String(req.body?.term || "").toLowerCase() } }
     );
+    if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/:id/hibp", loadDomain, async (req, res, next) => {
+  try {
+    const apiKey = String(req.body?.apiKey || "").trim();
+    if (!/^[A-Za-z0-9]{16,128}$/.test(apiKey)) return refuse(req, res, 400, "hibp_key_invalid");
+    await Domain.updateOne(
+      { _id: req.domain._id },
+      { $set: { hibp: { apiKey, lastBreachSeen: null, error: null } } }
+    );
+    if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.post("/:id/hibp/delete", loadDomain, async (req, res, next) => {
+  try {
+    await Domain.updateOne({ _id: req.domain._id }, { $unset: { hibp: 1 } });
     if (req.accepts(["json", "html"]) === "html") return res.redirect(`/domains/${req.domain._id}`);
     return res.json({ ok: true });
   } catch (err) {
